@@ -8,26 +8,42 @@ from src import db, events
 
 import botconfig
 
-Bot = None # bot instance
+Bot = None  # bot instance
 
 _users = set()
 _ghosts = set()
 
 _arg_msg = "(nick={0!r}, ident={1!r}, host={2!r}, realname={3!r}, account={4!r}, allow_bot={5})"
 
+
 class _user:
     def __init__(self, nick):
         self.nick = nick
 
     for name in ("ident", "host", "account", "inchan", "modes", "moded"):
-        locals()[name] = property(lambda self, name=name: var.USERS[self.nick][name], lambda self, value, name=name: var.USERS[self.nick].__setitem__(name, value))
+        locals()[name] = property(
+            lambda self, name=name: var.USERS[self.nick][name],
+            lambda self, value, name=name: var.USERS[self.nick].__setitem__(name, value),
+        )
+
 
 # This is used to tell if this is a fake nick or not. If this function
 # returns a true value, then it's a fake nick. This is useful for
 # testing, where we might want everyone to be fake nicks.
 predicate = re.compile(r"^[0-9]+$").search
 
-def _get(nick=None, ident=None, host=None, realname=None, account=None, *, allow_multiple=False, allow_none=False, allow_bot=False):
+
+def _get(
+    nick=None,
+    ident=None,
+    host=None,
+    realname=None,
+    account=None,
+    *,
+    allow_multiple=False,
+    allow_none=False,
+    allow_bot=False
+):
     """Return the matching user(s) from the user list.
 
     This takes up to 5 positional arguments (nick, ident, host, realname,
@@ -60,7 +76,7 @@ def _get(nick=None, ident=None, host=None, realname=None, account=None, *, allow
     sentinel = object()
 
     temp = User(sentinel, nick, ident, host, realname, account)
-    if temp.client is not sentinel: # actual client
+    if temp.client is not sentinel:  # actual client
         return [temp] if allow_multiple else temp
 
     for user in users:
@@ -74,17 +90,20 @@ def _get(nick=None, ident=None, host=None, realname=None, account=None, *, allow
         return potential[0]
 
     if len(potential) > 1:
-        raise ValueError("More than one user matches: " +
-              _arg_msg.format(nick, ident, host, realname, account, allow_bot))
+        raise ValueError(
+            "More than one user matches: " + _arg_msg.format(nick, ident, host, realname, account, allow_bot)
+        )
 
     if not allow_none:
         raise KeyError(_arg_msg.format(nick, ident, host, realname, account, allow_bot))
 
     return None
 
-def get(nick, *stuff, **morestuff): # backwards-compatible API - kill this as soon as possible!
-    var.USERS[nick] # _user(nick) evaluates lazily, so check eagerly if the nick exists
+
+def get(nick, *stuff, **morestuff):  # backwards-compatible API - kill this as soon as possible!
+    var.USERS[nick]  # _user(nick) evaluates lazily, so check eagerly if the nick exists
     return _user(nick)
+
 
 def _add(cli, *, nick, ident=None, host=None, realname=None, account=None):
     """Create a new user, add it to the user list and return it.
@@ -114,9 +133,11 @@ def _add(cli, *, nick, ident=None, host=None, realname=None, account=None):
 
     return new
 
-def add(nick, **blah): # backwards-compatible API
+
+def add(nick, **blah):  # backwards-compatible API
     var.USERS[nick] = blah
     return _user(nick)
+
 
 def _exists(nick=None, ident=None, host=None, realname=None, account=None, *, allow_multiple=False, allow_bot=False):
     """Return True if a matching user exists.
@@ -137,21 +158,25 @@ def _exists(nick=None, ident=None, host=None, realname=None, account=None, *, al
 
     temp = cls(sentinel, nick, ident, host, realname, account)
 
-    if temp.client is sentinel: # doesn't exist; if it did, the client would be an actual client
+    if temp.client is sentinel:  # doesn't exist; if it did, the client would be an actual client
         return False
 
     return temp is not Bot or allow_bot
 
-def exists(nick, *stuff, **morestuff): # backwards-compatible API
+
+def exists(nick, *stuff, **morestuff):  # backwards-compatible API
     return nick in var.USERS
+
 
 def users():
     """Iterate over the users in the registry."""
     yield from _users
 
+
 def disconnected():
     """Iterate over the users who are in-game but disconnected."""
     yield from _ghosts
+
 
 def complete_match(string, users):
     matches = []
@@ -168,17 +193,21 @@ def complete_match(string, users):
 
     return matches[0], 1
 
+
 _raw_nick_pattern = re.compile(r"^(?P<nick>.+?)(?:!(?P<ident>.+?)@(?P<host>.+))?$")
+
 
 def parse_rawnick(rawnick, *, default=None):
     """Return a tuple of (nick, ident, host) from rawnick."""
 
     return _raw_nick_pattern.search(rawnick).groups(default)
 
+
 def parse_rawnick_as_dict(rawnick, *, default=None):
     """Return a dict of {"nick": nick, "ident": ident, "host": host}."""
 
     return _raw_nick_pattern.search(rawnick).groupdict(default)
+
 
 def _cleanup_user(evt, var, user):
     """Removes a user from our global tracking set once it has left all channels."""
@@ -187,6 +216,7 @@ def _cleanup_user(evt, var, user):
     else:
         _users.discard(user)
 
+
 def _reset(evt, var):
     """Cleans up users that left during game during game end."""
     for user in _ghosts:
@@ -194,17 +224,20 @@ def _reset(evt, var):
             _users.discard(user)
     _ghosts.clear()
 
+
 def _swap_player(evt, var, old_user, user):
     """Mark the user as no longer being a ghost, if they are one."""
     _ghosts.discard(old_user)
     if not old_user.channels:
         _users.discard(old_user)
 
+
 # Can't use @event_listener decorator since src/decorators.py imports us
 # (meaning decorator isn't defined at the point in time we are run)
 events.add_listener("cleanup_user", _cleanup_user)
 events.add_listener("reset", _reset)
 events.add_listener("swap_player", _swap_player, priority=1)
+
 
 class User(IRCContext):
 
@@ -279,7 +312,7 @@ class User(IRCContext):
                     if potential is None:
                         potential = user
                     else:
-                        break # too many possibilities
+                        break  # too many possibilities
             else:
                 if potential is not None:
                     self = potential
@@ -287,13 +320,17 @@ class User(IRCContext):
         return self
 
     def __init__(*args, **kwargs):
-        pass # everything that needed to be done was done in __new__
+        pass  # everything that needed to be done was done in __new__
 
     def __str__(self):
-        return "{self.__class__.__name__}: {self.nick}!{self.ident}@{self.host}#{self.realname}:{self.account}".format(self=self)
+        return "{self.__class__.__name__}: {self.nick}!{self.ident}@{self.host}#{self.realname}:{self.account}".format(
+            self=self
+        )
 
     def __repr__(self):
-        return "{self.__class__.__name__}({self.nick!r}, {self.ident!r}, {self.host!r}, {self.realname!r}, {self.account!r}, {self.channels!r})".format(self=self)
+        return "{self.__class__.__name__}({self.nick!r}, {self.ident!r}, {self.host!r}, {self.realname!r}, {self.account!r}, {self.channels!r})".format(
+            self=self
+        )
 
     def __hash__(self):
         if self.ident is None or self.host is None:
@@ -315,8 +352,15 @@ class User(IRCContext):
         return self
 
     def lower(self):
-        temp = type(self)(self.client, lower(self.nick), lower(self.ident), lower(self.host, casemapping="ascii"), lower(self.realname), lower(self.account))
-        if temp is not self: # If everything is already lowercase, we'll get back the same instance
+        temp = type(self)(
+            self.client,
+            lower(self.nick),
+            lower(self.ident),
+            lower(self.host, casemapping="ascii"),
+            lower(self.realname),
+            lower(self.account),
+        )
+        if temp is not self:  # If everything is already lowercase, we'll get back the same instance
             temp.channels = self.channels
             temp.ref = self.ref or self
         return temp
@@ -379,9 +423,11 @@ class User(IRCContext):
         nick, ident, host = re.match("(?:(?:(.*?)!)?(.*?)@)?(.*)", hostmask).groups("")
         temp = self.lower()
 
-        return ((not nick or fnmatch.fnmatch(temp.nick, lower(nick))) and
-                (not ident or fnmatch.fnmatch(temp.ident, lower(ident))) and
-                fnmatch.fnmatch(temp.host, lower(host, casemapping="ascii")))
+        return (
+            (not nick or fnmatch.fnmatch(temp.nick, lower(nick)))
+            and (not ident or fnmatch.fnmatch(temp.ident, lower(ident)))
+            and fnmatch.fnmatch(temp.host, lower(host, casemapping="ascii"))
+        )
 
     def prefers_notice(self):
         temp = self.lower()
@@ -499,17 +545,17 @@ class User(IRCContext):
         return amount
 
     @property
-    def nick(self): # name should be the same as nick (for length calculation)
+    def nick(self):  # name should be the same as nick (for length calculation)
         return self.name
 
     @nick.setter
     def nick(self, nick):
         self.name = nick
-        if self is Bot: # update the client's nickname as well
+        if self is Bot:  # update the client's nickname as well
             self.client.nickname = nick
 
     @property
-    def ident(self): # prevent changing ident and host after they were set (so hash remains the same)
+    def ident(self):  # prevent changing ident and host after they were set (so hash remains the same)
         return self._ident
 
     @ident.setter
@@ -545,7 +591,7 @@ class User(IRCContext):
             self.client.real_name = realname
 
     @property
-    def account(self): # automatically converts "0" and "*" to None
+    def account(self):  # automatically converts "0" and "*" to None
         return self._account
 
     @account.setter
@@ -588,6 +634,7 @@ class User(IRCContext):
             if not self.channels:
                 _users.discard(self)
 
+
 class FakeUser(User):
 
     is_fake = True
@@ -609,14 +656,14 @@ class FakeUser(User):
 
     @property
     def rawnick(self):
-        return self.nick # we don't have a raw nick
+        return self.nick  # we don't have a raw nick
 
     @rawnick.setter
     def rawnick(self, rawnick):
         self.nick = parse_rawnick_as_dict(rawnick)["nick"]
 
-class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, BotUser)'
 
+class BotUser(User):  # TODO: change all the 'if x is Bot' for 'if isinstance(x, BotUser)'
     def __new__(cls, cli, nick):
         self = super().__new__(cls, cli, nick, None, None, None, None)
         self.modes = set()
@@ -635,8 +682,16 @@ class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, 
         return new
 
     def lower(self):
-        temp = super().__new__(type(self), self.client, lower(self.nick), lower(self.ident), lower(self.host, casemapping="ascii"), lower(self.realname), lower(self.account))
-        if temp is not self: # If everything is already lowercase, we'll get back the same instance
+        temp = super().__new__(
+            type(self),
+            self.client,
+            lower(self.nick),
+            lower(self.ident),
+            lower(self.host, casemapping="ascii"),
+            lower(self.realname),
+            lower(self.account),
+        )
+        if temp is not self:  # If everything is already lowercase, we'll get back the same instance
             temp.channels = self.channels
             temp.ref = self.ref or self
         return temp
@@ -645,5 +700,6 @@ class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, 
         if nick is None:
             nick = self.nick
         self.client.send("NICK", nick)
+
 
 # vim: set sw=4 expandtab:

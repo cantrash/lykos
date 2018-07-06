@@ -4,10 +4,15 @@ from src import settings as var
 from src import users
 
 __all__ = [
-    "get_players", "get_all_players", "get_participants",
+    "get_players",
+    "get_all_players",
+    "get_participants",
     "get_target",
-    "get_main_role", "get_all_roles", "get_reveal_role"
-    ]
+    "get_main_role",
+    "get_all_roles",
+    "get_reveal_role",
+]
+
 
 def get_players(roles=None, *, mainroles=None):
     if mainroles is None:
@@ -25,6 +30,7 @@ def get_players(roles=None, *, mainroles=None):
         return list(pl)
     return [p for p in var.ALL_PLAYERS if p in pl]
 
+
 def get_all_players(roles=None, *, rolemap=None):
     if rolemap is None:
         rolemap = var.ROLES
@@ -37,11 +43,13 @@ def get_all_players(roles=None, *, rolemap=None):
 
     return pl
 
+
 def get_participants():
     """List all players who are still able to participate in the game."""
     evt = Event("get_participants", {"players": get_players()})
     evt.dispatch(var)
     return evt.data["players"]
+
 
 def get_target(var, wrapper, message, *, allow_self=False, allow_bot=False, not_self_message=None):
     if not message:
@@ -65,6 +73,7 @@ def get_target(var, wrapper, message, *, allow_self=False, allow_bot=False, not_
 
     return match
 
+
 def get_main_role(user):
     role = var.MAIN_ROLES.get(user)
     if role is not None:
@@ -78,8 +87,10 @@ def get_main_role(user):
         raise ValueError("User {0} isn't playing and has no defined participant role".format(user))
     return role
 
+
 def get_all_roles(user):
     return {role for role, users in var.ROLES.items() if user in users}
+
 
 def get_reveal_role(user):
     # FIXME: when amnesiac and clone are split, move this into an event

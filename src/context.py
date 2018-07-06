@@ -3,7 +3,14 @@ from operator import attrgetter
 
 from src.logger import debuglog
 
-Features = {"CASEMAPPING": "rfc1459", "CHARSET": "utf-8", "STATUSMSG": {"@", "+"}, "CHANTYPES": {"#"}, "TARGMAX": {"PRIVMSG": 1, "NOTICE": 1}}
+Features = {
+    "CASEMAPPING": "rfc1459",
+    "CHARSET": "utf-8",
+    "STATUSMSG": {"@", "+"},
+    "CHANTYPES": {"#"},
+    "TARGMAX": {"PRIVMSG": 1, "NOTICE": 1},
+}
+
 
 def _who(cli, target, data=b""):
     """Handle WHO requests."""
@@ -26,6 +33,7 @@ def _who(cli, target, data=b""):
 
     return int.from_bytes(data, "little")
 
+
 def _send(data, first, sep, client, send_type, name):
     full_address = "{cli.nickname}!{cli.ident}@{cli.hostmask}".format(cli=client)
 
@@ -45,7 +53,7 @@ def _send(data, first, sep, client, send_type, name):
     # Finally, we need to account for the send type's length
     length -= len(send_type)
     # The 'first' argument is sent along with every message, so deduce that too
-    if length - len(first) > 0: # make sure it's not negative (or worse, 0)
+    if length - len(first) > 0:  # make sure it's not negative (or worse, 0)
         length -= len(first)
     else:
         first = ""
@@ -71,6 +79,7 @@ def _send(data, first, sep, client, send_type, name):
             extra, line = line[:length], line[length:]
             client.send("{0} {1} :{2}{3}".format(send_type, name, first, extra))
 
+
 def lower(nick, *, casemapping=None):
     if nick is None:
         return None
@@ -79,12 +88,7 @@ def lower(nick, *, casemapping=None):
     if casemapping is None:
         casemapping = Features["CASEMAPPING"]
 
-    mapping = {
-        "[": "{",
-        "]": "}",
-        "\\": "|",
-        "^": "~",
-    }
+    mapping = {"[": "{", "]": "}", "\\": "|", "^": "~"}
 
     if casemapping == "strict-rfc1459":
         mapping.pop("^")
@@ -93,8 +97,10 @@ def lower(nick, *, casemapping=None):
 
     return nick.lower().translate(str.maketrans(mapping))
 
+
 def equals(nick1, nick2):
     return nick1 is not None and nick2 is not None and lower(nick1) == lower(nick2)
+
 
 def context_types(*types):
     def wrapper(cls):
@@ -105,7 +111,9 @@ def context_types(*types):
             setattr(cls, name, False)
             l.append((context_type, attrgetter(name)))
         return cls
+
     return wrapper
+
 
 @context_types("channel", "user")
 class IRCContext:
@@ -124,7 +132,7 @@ class IRCContext:
         raise ValueError("Format specificer {0} has undefined semantics".format(format_spec))
 
     def __eq__(self, other):
-        return self._compare(other, __class__) # This will always return False
+        return self._compare(other, __class__)  # This will always return False
 
     def _compare(self, other, cls, *attributes):
         """Compare two instances and return a proper value."""
@@ -155,7 +163,7 @@ class IRCContext:
 
     def queue_message(self, message):
         if self.is_fake:
-            self.send(message) # Don't actually queue it
+            self.send(message)  # Don't actually queue it
             return
 
         if isinstance(message, list):
@@ -224,5 +232,6 @@ class IRCContext:
         if sep is None:
             sep = " "
         _send(data, first, sep, self.client, send_type, name)
+
 
 # vim: set sw=4 expandtab:

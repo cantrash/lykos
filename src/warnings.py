@@ -11,6 +11,7 @@ from src.messages import messages
 
 __all__ = ["is_user_stasised", "decrement_stasis", "parse_warning_target", "add_warning", "expire_tempbans"]
 
+
 def is_user_stasised(nick):
     """Checks if a user is in stasis. Returns a number of games in stasis."""
 
@@ -26,8 +27,9 @@ def is_user_stasised(nick):
             amount = var.STASISED_ACCS[acc]
     for hostmask in var.STASISED:
         if match_hostmask(hostmask, nick, ident, host):
-           amount = max(amount, var.STASISED[hostmask])
+            amount = max(amount, var.STASISED[hostmask])
     return amount
+
 
 def decrement_stasis(nick=None):
     if nick and nick in var.USERS:
@@ -46,6 +48,7 @@ def decrement_stasis(nick=None):
     db.expire_stasis()
     db.init_vars()
 
+
 def expire_tempbans():
     acclist, hmlist = db.expire_tempbans()
     cmodes = []
@@ -54,6 +57,7 @@ def expire_tempbans():
     for hm in hmlist:
         cmodes.append(("-b", "*!*@{0}".format(hm.split("@")[1])))
     channels.Main.mode(*cmodes)
+
 
 def parse_warning_target(target, lower=False):
     if target[0] == "=":
@@ -87,6 +91,7 @@ def parse_warning_target(target, lower=False):
     else:
         return (None, None)
     return (tacc, thm)
+
 
 def _get_auto_sanctions(sanctions, prev, cur):
     for (mn, mx, sanc) in var.AUTO_SANCTION:
@@ -139,7 +144,7 @@ def _get_auto_sanctions(sanctions, prev, cur):
                     sanctions["tempban"] = ths
                 else:
                     sanctions["tempban"] = exp
-    
+
 
 def add_warning(cli, target, amount, actor, reason, notes=None, expires=None, sanctions=None):
     tacc, thm = parse_warning_target(target)
@@ -203,24 +208,34 @@ def add_warning(cli, target, amount, actor, reason, notes=None, expires=None, sa
         mass_mode(cli, cmodes, [])
         for (nick, user) in var.USERS.items():
             if user["account"] in acclist:
-                cli.kick(botconfig.CHANNEL, nick, messages["tempban_kick"].format(nick=nick, botnick=users.Bot.nick, reason=reason))
+                cli.kick(
+                    botconfig.CHANNEL,
+                    nick,
+                    messages["tempban_kick"].format(nick=nick, botnick=users.Bot.nick, reason=reason),
+                )
             elif user["host"] in hmlist:
-                cli.kick(botconfig.CHANNEL, nick, messages["tempban_kick"].format(nick=nick, botnick=users.Bot.nick, reason=reason))
+                cli.kick(
+                    botconfig.CHANNEL,
+                    nick,
+                    messages["tempban_kick"].format(nick=nick, botnick=users.Bot.nick, reason=reason),
+                )
 
     # Update any tracking vars that may have changed due to this
     db.init_vars()
 
     return sid
 
+
 @command("stasis", chan=True, pm=True)
 def stasis(var, wrapper, message):
-    st = is_user_stasised(wrapper.source.nick) # FIXME
+    st = is_user_stasised(wrapper.source.nick)  # FIXME
     if st:
         msg = messages["your_current_stasis"].format(st, "" if st == 1 else "s")
     else:
         msg = messages["you_not_in_stasis"]
 
     wrapper.reply(msg, prefix_nick=True)
+
 
 @command("fstasis", flag="A", chan=True, pm=True)
 def fstasis(var, wrapper, message):
@@ -284,16 +299,17 @@ def fstasis(var, wrapper, message):
             if var.DISABLE_ACCOUNTS:
                 stasised[hostmask] = var.STASISED[hostmask]
             else:
-                stasised[hostmask+" (Host)"] = var.STASISED[hostmask]
+                stasised[hostmask + " (Host)"] = var.STASISED[hostmask]
         if not var.DISABLE_ACCOUNTS:
             for acc in var.STASISED_ACCS:
-                stasised[acc+" (Account)"] = var.STASISED_ACCS[acc]
-        msg = messages["currently_stasised"].format(", ".join(
-            "\u0002{0}\u0002 ({1})".format(usr, number)
-            for usr, number in stasised.items()))
+                stasised[acc + " (Account)"] = var.STASISED_ACCS[acc]
+        msg = messages["currently_stasised"].format(
+            ", ".join("\u0002{0}\u0002 ({1})".format(usr, number) for usr, number in stasised.items())
+        )
         wrapper.reply(msg)
     else:
         wrapper.reply(messages["noone_stasised"])
+
 
 @command("warn", pm=True)
 def warn(var, wrapper, message):
@@ -351,14 +367,14 @@ def warn(var, wrapper, message):
             return
 
         acc, hm = parse_warning_target(wrapper.source.nick)
-        warnings = db.list_warnings(acc, hm, expired=list_all, skip=(page-1)*10, show=11)
+        warnings = db.list_warnings(acc, hm, expired=list_all, skip=(page - 1) * 10, show=11)
         points = db.get_warning_points(acc, hm)
         wrapper.pm(messages["warn_list_header"].format(points, "" if points == 1 else "s"))
 
         i = 0
         for warn in warnings:
             i += 1
-            if (i == 11):
+            if i == 11:
                 parts = []
                 if list_all:
                     parts.append("-all")
@@ -380,9 +396,19 @@ def warn(var, wrapper, message):
                 end = " [\u00037{0}\u000314]\u0003".format(messages["fwarn_expired"])
             if not warn["ack"]:
                 ack = "\u0002!\u0002 "
-            wrapper.pm(messages["warn_list"].format(
-                start, ack, warn["id"], warn["issued"], warn["reason"], warn["amount"],
-                "" if warn["amount"] == 1 else "s", expires, end))
+            wrapper.pm(
+                messages["warn_list"].format(
+                    start,
+                    ack,
+                    warn["id"],
+                    warn["issued"],
+                    warn["reason"],
+                    warn["amount"],
+                    "" if warn["amount"] == 1 else "s",
+                    expires,
+                    end,
+                )
+            )
         if i == 0:
             wrapper.pm(messages["fwarn_list_empty"])
         return
@@ -410,9 +436,11 @@ def warn(var, wrapper, message):
         else:
             expires = messages["fwarn_view_active"].format(messages["fwarn_view_expires"].format(warning["expires"]))
 
-        wrapper.pm(messages["warn_view_header"].format(
-            warning["id"], warning["issued"], warning["amount"],
-            "" if warning["amount"] == 1 else "s", expires))
+        wrapper.pm(
+            messages["warn_view_header"].format(
+                warning["id"], warning["issued"], warning["amount"], "" if warning["amount"] == 1 else "s", expires
+            )
+        )
         wrapper.pm(warning["reason"])
 
         sanctions = []
@@ -454,6 +482,7 @@ def warn(var, wrapper, message):
         db.acknowledge_warning(warn_id)
         wrapper.reply(messages["fwarn_done"])
         return
+
 
 @command("fwarn", flag="F", pm=True)
 def fwarn(var, wrapper, message):
@@ -564,16 +593,16 @@ def fwarn(var, wrapper, message):
             if acc is None and hm is None:
                 wrapper.reply(messages["fwarn_nick_invalid"])
                 return
-            warnings = db.list_warnings(acc, hm, expired=list_all, deleted=list_all, skip=(page-1)*10, show=11)
+            warnings = db.list_warnings(acc, hm, expired=list_all, deleted=list_all, skip=(page - 1) * 10, show=11)
             points = db.get_warning_points(acc, hm)
             wrapper.pm(messages["fwarn_list_header"].format(target, points, "" if points == 1 else "s"))
         else:
-            warnings = db.list_all_warnings(list_all=list_all, skip=(page-1)*10, show=11)
+            warnings = db.list_all_warnings(list_all=list_all, skip=(page - 1) * 10, show=11)
 
         i = 0
         for warn in warnings:
             i += 1
-            if (i == 11):
+            if i == 11:
                 parts = []
                 if list_all:
                     parts.append("-all")
@@ -600,10 +629,21 @@ def fwarn(var, wrapper, message):
                 end = " [\u00037{0}\u000314]\u0003".format(messages["fwarn_expired"])
             if not warn["ack"]:
                 ack = "\u0002!\u0002 "
-            wrapper.pm(messages["fwarn_list"].format(
-                start, ack, warn["id"], warn["issued"], warn["target"],
-                warn["sender"], warn["reason"], warn["amount"],
-                "" if warn["amount"] == 1 else "s", expires, end))
+            wrapper.pm(
+                messages["fwarn_list"].format(
+                    start,
+                    ack,
+                    warn["id"],
+                    warn["issued"],
+                    warn["target"],
+                    warn["sender"],
+                    warn["reason"],
+                    warn["amount"],
+                    "" if warn["amount"] == 1 else "s",
+                    expires,
+                    end,
+                )
+            )
         if i == 0:
             wrapper.pm(messages["fwarn_list_empty"])
         return
@@ -632,9 +672,17 @@ def fwarn(var, wrapper, message):
         else:
             expires = messages["fwarn_view_active"].format(messages["fwarn_view_expires"].format(warning["expires"]))
 
-        wrapper.pm(messages["fwarn_view_header"].format(
-            warning["id"], warning["target"], warning["issued"], warning["sender"],
-            warning["amount"], "" if warning["amount"] == 1 else "s", expires))
+        wrapper.pm(
+            messages["fwarn_view_header"].format(
+                warning["id"],
+                warning["target"],
+                warning["issued"],
+                warning["sender"],
+                warning["amount"],
+                "" if warning["amount"] == 1 else "s",
+                expires,
+            )
+        )
 
         reason = [warning["reason"]]
         if warning["notes"] is not None:
@@ -680,8 +728,12 @@ def fwarn(var, wrapper, message):
 
         if var.LOG_CHANNEL:
             msg = messages["fwarn_log_del"].format(
-                warn_id, warning["target"], hm,
-                warning["reason"], (" | " + warning["notes"]) if warning["notes"] else "")
+                warn_id,
+                warning["target"],
+                hm,
+                warning["reason"],
+                (" | " + warning["notes"]) if warning["notes"] else "",
+            )
             channels.get(var.LOG_CHANNEL).send(msg, prefix=var.LOG_PREFIX)
         return
 
@@ -776,7 +828,9 @@ def fwarn(var, wrapper, message):
                 else:
                     changes.append(messages["fwarn_log_set_notes_new"].format(notes))
             if changes:
-                log_msg = messages["fwarn_log_set"].format(warn_id, warning["target"], wrapper.source.nick, " | ".join(changes))
+                log_msg = messages["fwarn_log_set"].format(
+                    warn_id, warning["target"], wrapper.source.nick, " | ".join(changes)
+                )
                 channels.get(var.LOG_CHANNEL).send(log_msg, prefix=var.LOG_PREFIX)
 
         return
@@ -881,7 +935,9 @@ def fwarn(var, wrapper, message):
         expires = None
 
     try:
-        warn_id = add_warning(wrapper.client, target, points, wrapper.source.nick, reason, notes, expires, sanctions) # FIXME
+        warn_id = add_warning(
+            wrapper.client, target, points, wrapper.source.nick, reason, notes, expires, sanctions
+        )  # FIXME
     except ValueError:
         wrapper.reply(messages["fwarn_expiry_invalid"])
         return
@@ -899,8 +955,10 @@ def fwarn(var, wrapper, message):
                 log_length = messages["fwarn_log_add_noexpiry"]
             else:
                 log_length = messages["fwarn_log_add_expiry"].format(expires)
-            log_msg = messages["fwarn_log_add"].format(warn_id, target, wrapper.source.nick, log_reason, points,
-                                                       "" if points == 1 else "s", log_length)
+            log_msg = messages["fwarn_log_add"].format(
+                warn_id, target, wrapper.source.nick, log_reason, points, "" if points == 1 else "s", log_length
+            )
             channels.get(var.LOG_CHANNEL).send(log_msg, prefix=var.LOG_PREFIX)
+
 
 # vim: set sw=4 expandtab:

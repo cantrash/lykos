@@ -19,7 +19,7 @@ def see(cli, nick, chan, rest):
     if nick in SEEN:
         pm(cli, nick, messages["seer_fail"])
         return
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
+    victim = get_victim(cli, nick, re.split(" +", rest)[0], False)
     if not victim:
         return
 
@@ -27,8 +27,8 @@ def see(cli, nick, chan, rest):
         pm(cli, nick, messages["no_see_self"])
         return
 
-    seer = users._get(nick) # FIXME
-    target = users._get(victim) # FIXME
+    seer = users._get(nick)  # FIXME
+    target = users._get(victim)  # FIXME
 
     evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
     evt.dispatch(var, "see", seer, target, frozenset({"info", "immediate"}))
@@ -36,10 +36,10 @@ def see(cli, nick, chan, rest):
         return
     victim = evt.data["target"].nick
     victimrole = get_role(victim)
-    vrole = victimrole # keep a copy for logging
+    vrole = victimrole  # keep a copy for logging
 
     if role != "augur":
-        if (victimrole in var.SEEN_WOLF and victimrole not in var.SEEN_DEFAULT):
+        if victimrole in var.SEEN_WOLF and victimrole not in var.SEEN_DEFAULT:
             victimrole = "wolf"
         elif victimrole in var.SEEN_DEFAULT:
             victimrole = var.DEFAULT_ROLE
@@ -62,9 +62,15 @@ def see(cli, nick, chan, rest):
         debuglog("{0} ({1}) SEE: {2} ({3}) as {4}".format(nick, role, victim, vrole, victimrole))
     elif role == "oracle":
         iswolf = False
-        if (victimrole in var.SEEN_WOLF and victimrole not in var.SEEN_DEFAULT):
+        if victimrole in var.SEEN_WOLF and victimrole not in var.SEEN_DEFAULT:
             iswolf = True
-        pm(cli, nick, (messages["oracle_success"]).format(victim, "" if iswolf else "\u0002not\u0002 ", "\u0002" if iswolf else ""))
+        pm(
+            cli,
+            nick,
+            (messages["oracle_success"]).format(
+                victim, "" if iswolf else "\u0002not\u0002 ", "\u0002" if iswolf else ""
+            ),
+        )
         debuglog("{0} ({1}) SEE: {2} ({3}) (Wolf: {4})".format(nick, role, victim, vrole, str(iswolf)))
     elif role == "augur":
         aura = "blue"
@@ -77,34 +83,41 @@ def see(cli, nick, chan, rest):
 
     SEEN.add(nick)
 
+
 @event_listener("rename_player")
 def on_rename(evt, cli, var, prefix, nick):
     if prefix in SEEN:
         SEEN.remove(prefix)
         SEEN.add(nick)
 
+
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     SEEN.discard(user.nick)
+
 
 @event_listener("night_acted")
 def on_acted(evt, var, user, actor):
     if user.nick in SEEN:
         evt.data["acted"] = True
 
+
 @event_listener("get_special")
 def on_get_special(evt, var):
     evt.data["special"].update(get_players(("seer", "oracle", "augur")))
+
 
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
     if actor_role in ("seer", "oracle", "augur"):
         SEEN.discard(actor.nick)
 
+
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(SEEN)
     evt.data["nightroles"].extend(get_all_players(("seer", "oracle", "augur")))
+
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
@@ -132,12 +145,15 @@ def on_transition_night_end(evt, var):
             to_send = "seer_simple"
         seer.send(messages[to_send].format(a, role, what), "Players: " + ", ".join(p.nick for p in pl), sep="\n")
 
+
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     SEEN.clear()
 
+
 @event_listener("reset")
 def on_reset(evt, var):
     SEEN.clear()
+
 
 # vim: set sw=4 expandtab:

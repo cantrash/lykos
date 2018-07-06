@@ -13,8 +13,9 @@ from src.decorators import command, event_listener
 from src.messages import messages
 from src.events import Event
 
-TOBECHARMED = {} # type: Dict[users.User, Set[users.User]]
-CHARMED = set() # type: Set[users.User]
+TOBECHARMED = {}  # type: Dict[users.User, Set[users.User]]
+CHARMED = set()  # type: Set[users.User]
+
 
 @command("charm", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 def charm(var, wrapper, message):
@@ -73,13 +74,16 @@ def charm(var, wrapper, message):
     TOBECHARMED[wrapper.source].discard(None)
 
     if orig2:
-        debuglog("{0} (piper) CHARM {1} ({2}) && {3} ({4})".format(wrapper.source,
-                                                                 target1, get_main_role(target1),
-                                                                 target2, get_main_role(target2)))
+        debuglog(
+            "{0} (piper) CHARM {1} ({2}) && {3} ({4})".format(
+                wrapper.source, target1, get_main_role(target1), target2, get_main_role(target2)
+            )
+        )
         wrapper.send(messages["charm_multiple_success"].format(orig1, orig2))
     else:
         debuglog("{0} (piper) CHARM {1} ({2})".format(wrapper.source, target1, get_main_role(target1)))
         wrapper.send(messages["charm_success"].format(orig1))
+
 
 @event_listener("chk_win", priority=2)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
@@ -87,7 +91,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     # whereas we want to ensure EVERYONE (even wounded people) are charmed for piper win
     pipers = rolemap.get("piper", set())
     lp = len(pipers)
-    if lp == 0: # no alive pipers, short-circuit this check
+    if lp == 0:  # no alive pipers, short-circuit this check
         return
 
     uncharmed = set(get_players(mainroles=mainroles)) - CHARMED - pipers
@@ -95,6 +99,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     if var.PHASE == "day" and len(uncharmed) == 0:
         evt.data["winner"] = "pipers"
         evt.data["message"] = messages["piper_win"].format("s" if lp > 1 else "", "s" if lp == 1 else "")
+
 
 @event_listener("player_win")
 def on_player_win(evt, var, player, mainrole, winner, survived):
@@ -106,10 +111,12 @@ def on_player_win(evt, var, player, mainrole, winner, survived):
     # TODO: add code here (or maybe a sep event?) to let lovers win alongside piper
     # Right now that's still in wolfgame.py, but should be moved here once mm is split
 
+
 @event_listener("del_player")
 def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
     CHARMED.discard(player)
     TOBECHARMED.pop(player, None)
+
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
@@ -130,7 +137,12 @@ def on_transition_day_begin(evt, var):
         elif len(charmedlist) == 2:
             target.send(message + messages["two_charmed_players"].format(charmedlist[0], charmedlist[1]))
         else:
-            target.send(message + messages["many_charmed_players"].format("\u0002, \u0002".join(p.nick for p in charmedlist[:-1]), charmedlist[-1]))
+            target.send(
+                message
+                + messages["many_charmed_players"].format(
+                    "\u0002, \u0002".join(p.nick for p in charmedlist[:-1]), charmedlist[-1]
+                )
+            )
 
     if len(tocharm) > 0:
         for target in CHARMED:
@@ -141,21 +153,28 @@ def on_transition_day_begin(evt, var):
             elif len(tobecharmedlist) == 2:
                 message = messages["players_charmed_two"].format(tobecharmedlist[0], tobecharmedlist[1])
             else:
-                message = messages["players_charmed_many"].format("\u0002, \u0002".join(p.nick for p in tobecharmedlist[:-1]), tobecharmedlist[-1])
+                message = messages["players_charmed_many"].format(
+                    "\u0002, \u0002".join(p.nick for p in tobecharmedlist[:-1]), tobecharmedlist[-1]
+                )
 
             previouscharmed = CHARMED - {target}
             if len(previouscharmed):
-                target.send(message + messages["previously_charmed"].format("\u0002, \u0002".join(p.nick for p in previouscharmed)))
+                target.send(
+                    message
+                    + messages["previously_charmed"].format("\u0002, \u0002".join(p.nick for p in previouscharmed))
+                )
             else:
                 target.send(message)
 
     CHARMED.update(tocharm)
     TOBECHARMED.clear()
 
+
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(TOBECHARMED.keys())
     evt.data["nightroles"].extend(get_all_players(("piper",)))
+
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
@@ -169,6 +188,7 @@ def on_transition_night_end(evt, var):
             to_send = "piper_simple"
         piper.send(messages[to_send], "Players: " + ", ".join(p.nick for p in pl), sep="\n")
 
+
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
     # if we're shifting piper around, ensure that the new piper isn't charmed
@@ -177,24 +197,29 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
     if target_role == "piper":
         CHARMED.discard(actor)
 
+
 @event_listener("get_special")
 def on_get_special(evt, var):
     evt.data["special"].update(get_players(("piper",)))
+
 
 @event_listener("night_acted")
 def on_acted(evt, var, target, spy):
     if target in TOBECHARMED:
         evt.data["acted"] = True
 
+
 @event_listener("reset")
 def on_reset(evt, var):
     CHARMED.clear()
     TOBECHARMED.clear()
 
+
 @event_listener("revealroles")
 def on_revealroles(evt, var, wrapper):
     if CHARMED:
         evt.data["output"].append("\u0002charmed players\u0002: {0}".format(", ".join(p.nick for p in CHARMED)))
+
 
 @event_listener("swap_player")
 def on_swap_player(evt, var, old, new):
@@ -209,5 +234,6 @@ def on_swap_player(evt, var, old, new):
         if old in s:
             s.remove(old)
             s.add(new)
+
 
 # vim: set sw=4 expandtab:

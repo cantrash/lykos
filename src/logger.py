@@ -3,11 +3,13 @@ import time
 
 import botconfig
 
+
 def logger(file, write=True, display=True):
     if file is not None:
-        open(file, "a").close() # create the file if it doesn't exist
+        open(file, "a").close()  # create the file if it doesn't exist
+
     def log(*output, write=write, display=display):
-        output = " ".join([str(x) for x in output]).replace("\u0002", "").replace("\\x02", "") # remove bold
+        output = " ".join([str(x) for x in output]).replace("\u0002", "").replace("\\x02", "")  # remove bold
         if botconfig.DEBUG_MODE:
             write = True
         if botconfig.DEBUG_MODE or botconfig.VERBOSE_MODE:
@@ -22,14 +24,16 @@ def logger(file, write=True, display=True):
 
     return log
 
+
 stream_handler = logger(None)
 debuglog = logger("debug.log", write=False, display=False)
 errlog = logger("errors.log")
-plog = stream_handler # use this instead of print so that logs have timestamps
+plog = stream_handler  # use this instead of print so that logs have timestamps
 
 # replace characters that can't be encoded with '?'
 # since windows likes to use weird encodings by default
-utf8stdout = open(1, 'w', errors="replace", closefd=False) # stdout
+utf8stdout = open(1, "w", errors="replace", closefd=False)  # stdout
+
 
 def get_timestamp(use_utc=None, ts_format=None):
     """Return a timestamp with timezone + offset from UTC."""
@@ -49,6 +53,7 @@ def get_timestamp(use_utc=None, ts_format=None):
             offset = "-"
         offset += str(time.timezone // 36).zfill(4)
     return tmf.format(tzname=tz, tzoffset=offset).strip().upper() + " "
+
 
 def stream(output, level="normal"):
     if botconfig.VERBOSE_MODE or botconfig.DEBUG_MODE:

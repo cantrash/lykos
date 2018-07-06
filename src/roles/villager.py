@@ -8,6 +8,7 @@ from src.events import Event
 
 # handles villager and cultist
 
+
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
     if var.FIRST_NIGHT or var.ALWAYS_PM_ROLE:
@@ -35,6 +36,7 @@ def on_transition_night_end(evt, var):
                 cultist.queue_message(messages[to_send])
             cultist.send_messages()
 
+
 # No listeners should register before this one
 # This sets up the initial state, based on village/wolfteam/neutral affiliation
 @event_listener("player_win", priority=0)
@@ -54,6 +56,7 @@ def on_player_win(evt, var, user, role, winner, survived):
         evt.data["won"] = True
         evt.data["iwon"] = survived
 
+
 @event_listener("chk_win", priority=3)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     if evt.data["winner"] is not None:
@@ -67,5 +70,6 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     elif lwolves > lpl / 2:
         evt.data["winner"] = "wolves"
         evt.data["message"] = messages["wolf_win_greater"]
+
 
 # vim: set sw=4 expandtab:

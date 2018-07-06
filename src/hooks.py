@@ -15,6 +15,7 @@ from src import channels, users, settings as var
 
 ### WHO/WHOX responses handling
 
+
 @hook("whoreply")
 def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status, hopcount_gecos):
     """Handle WHO replies for servers without WHOX support.
@@ -42,11 +43,11 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
     hop = int(hop)
     # We throw away the information about the operness of the user, but we probably don't need to care about that
     # We also don't directly pass which modes they have, since that's already on the channel/user
-    is_away = ("G" in status)
+    is_away = "G" in status
 
     modes = {Features["PREFIX"].get(s) for s in status} - {None}
 
-    user = users._add(cli, nick=nick, ident=ident, host=host, realname=realname) # FIXME
+    user = users._add(cli, nick=nick, ident=ident, host=host, realname=realname)  # FIXME
     ch = channels.add(chan, cli)
 
     if ch not in user.channels:
@@ -57,14 +58,27 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
                 ch.modes[mode] = set()
             ch.modes[mode].add(user)
 
-    event = Event("who_result", {}, away=is_away, data=0, ip_address=None, server=server, hop_count=hop, idle_time=None, extended_who=False)
+    event = Event(
+        "who_result",
+        {},
+        away=is_away,
+        data=0,
+        ip_address=None,
+        server=server,
+        hop_count=hop,
+        idle_time=None,
+        extended_who=False,
+    )
     event.dispatch(var, ch, user)
 
-    if ch is channels.Main and not users.exists(nick): # FIXME
+    if ch is channels.Main and not users.exists(nick):  # FIXME
         users.add(nick, ident=ident, host=host, account="*", inchan=True, modes=modes, moded=set())
 
+
 @hook("whospcrpl")
-def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address, host, server, nick, status, hop, idle, account, realname):
+def extended_who_reply(
+    cli, bot_server, bot_nick, data, chan, ident, ip_address, host, server, nick, status, hop, idle, account, realname
+):
     """Handle WHOX responses for servers that support it.
 
     An extended WHO (WHOX) is caracterised by a second parameter to the request
@@ -103,13 +117,13 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
 
     hop = int(hop)
     idle = int(idle)
-    is_away = ("G" in status)
+    is_away = "G" in status
 
     data = int.from_bytes(data.encode(Features["CHARSET"]), "little")
 
     modes = {Features["PREFIX"].get(s) for s in status} - {None}
 
-    user = users._add(cli, nick=nick, ident=ident, host=host, realname=realname, account=account) # FIXME
+    user = users._add(cli, nick=nick, ident=ident, host=host, realname=realname, account=account)  # FIXME
     ch = channels.add(chan, cli)
 
     if ch not in user.channels:
@@ -120,11 +134,22 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
                 ch.modes[mode] = set()
             ch.modes[mode].add(user)
 
-    event = Event("who_result", {}, away=is_away, data=data, ip_address=ip_address, server=server, hop_count=hop, idle_time=idle, extended_who=True)
+    event = Event(
+        "who_result",
+        {},
+        away=is_away,
+        data=data,
+        ip_address=ip_address,
+        server=server,
+        hop_count=hop,
+        idle_time=idle,
+        extended_who=True,
+    )
     event.dispatch(var, ch, user)
 
-    if ch is channels.Main and not users.exists(nick): # FIXME
+    if ch is channels.Main and not users.exists(nick):  # FIXME
         users.add(nick, ident=ident, host=host, account=account, inchan=True, modes=modes, moded=set())
+
 
 @hook("endofwho")
 def end_who(cli, bot_server, bot_nick, target, rest):
@@ -148,7 +173,7 @@ def end_who(cli, bot_server, bot_nick, target, rest):
         target = channels.get(target)
     except KeyError:
         try:
-            target = users._get(target) # FIXME
+            target = users._get(target)  # FIXME
         except KeyError:
             target = None
     else:
@@ -159,7 +184,9 @@ def end_who(cli, bot_server, bot_nick, target, rest):
 
     Event("who_end", {}).dispatch(var, target)
 
+
 ### Host changing handling
+
 
 @hook("event_hosthidden")
 def host_hidden(cli, server, nick, host, message):
@@ -183,7 +210,9 @@ def host_hidden(cli, server, nick, host, message):
     if nick == users.Bot.nick:
         users.Bot = users.Bot.with_host(host)
 
+
 ### Server PING handling
+
 
 @hook("ping")
 def on_ping(cli, prefix, server):
@@ -200,7 +229,9 @@ def on_ping(cli, prefix, server):
     with cli:
         cli.send("PONG", server)
 
+
 ### Fetch and store server information
+
 
 @hook("featurelist")
 def get_features(cli, rawnick, *features):
@@ -260,7 +291,9 @@ def get_features(cli, rawnick, *features):
         else:
             Features[feature] = None
 
+
 ### Channel and user MODE handling
+
 
 @hook("channelmodeis")
 def current_modes(cli, server, bot_nick, chan, mode, *targets):
@@ -279,6 +312,7 @@ def current_modes(cli, server, bot_nick, chan, mode, *targets):
 
     ch = channels.add(chan, cli)
     ch.update_modes(server, mode, targets)
+
 
 @hook("channelcreate")
 def chan_created(cli, server, bot_nick, chan, timestamp):
@@ -299,6 +333,7 @@ def chan_created(cli, server, bot_nick, chan, timestamp):
 
     channels.add(chan, cli).timestamp = int(timestamp)
 
+
 @hook("mode")
 def mode_change(cli, rawnick, chan, mode, *targets):
     """Update the channel and user modes whenever a mode change occurs.
@@ -316,21 +351,24 @@ def mode_change(cli, rawnick, chan, mode, *targets):
 
     """
 
-    if chan == users.Bot.nick: # we only see user modes set to ourselves
+    if chan == users.Bot.nick:  # we only see user modes set to ourselves
         users.Bot.modes.update(mode)
         return
 
-    actor = users._add(cli, nick=rawnick) # FIXME
+    actor = users._add(cli, nick=rawnick)  # FIXME
     target = channels.add(chan, cli)
     target.queue("mode_change", {"mode": mode, "targets": targets}, (var, actor, target))
 
-@event_listener("mode_change", 0) # This should fire before anything else!
+
+@event_listener("mode_change", 0)  # This should fire before anything else!
 def apply_mode_changes(evt, var, actor, target):
     """Apply all mode changes before any other event."""
 
     target.update_modes(actor, evt.data.pop("mode"), evt.data.pop("targets"))
 
+
 ### List modes handling (bans, quiets, ban and invite exempts)
+
 
 def handle_listmode(cli, chan, mode, target, setter, timestamp):
     """Handle and store list modes."""
@@ -339,6 +377,7 @@ def handle_listmode(cli, chan, mode, target, setter, timestamp):
     if mode not in ch.modes:
         ch.modes[mode] = {}
     ch.modes[mode][target] = (setter, int(timestamp))
+
 
 @hook("banlist")
 def check_banlist(cli, server, bot_nick, chan, target, setter, timestamp):
@@ -357,6 +396,7 @@ def check_banlist(cli, server, bot_nick, chan, target, setter, timestamp):
     """
 
     handle_listmode(cli, chan, "b", target, setter, timestamp)
+
 
 @hook("quietlist")
 def check_quietlist(cli, server, bot_nick, chan, mode, target, setter, timestamp):
@@ -377,6 +417,7 @@ def check_quietlist(cli, server, bot_nick, chan, mode, target, setter, timestamp
 
     handle_listmode(cli, chan, mode, target, setter, timestamp)
 
+
 @hook("exceptlist")
 def check_banexemptlist(cli, server, bot_nick, chan, target, setter, timestamp):
     """Update the channel ban exempt list with the current one.
@@ -394,6 +435,7 @@ def check_banexemptlist(cli, server, bot_nick, chan, target, setter, timestamp):
     """
 
     handle_listmode(cli, chan, "e", target, setter, timestamp)
+
 
 @hook("invitelist")
 def check_inviteexemptlist(cli, server, bot_nick, chan, target, setter, timestamp):
@@ -413,11 +455,13 @@ def check_inviteexemptlist(cli, server, bot_nick, chan, target, setter, timestam
 
     handle_listmode(cli, chan, "I", target, setter, timestamp)
 
+
 def handle_endlistmode(cli, chan, mode):
     """Handle the end of a list mode listing."""
 
     ch = channels.add(chan, cli)
     ch.queue("end_listmode", {}, (var, ch, mode))
+
 
 @hook("endofbanlist")
 def end_banlist(cli, server, bot_nick, chan, message):
@@ -434,6 +478,7 @@ def end_banlist(cli, server, bot_nick, chan, message):
     """
 
     handle_endlistmode(cli, chan, "b")
+
 
 @hook("quietlistend")
 def end_quietlist(cli, server, bot_nick, chan, mode, message):
@@ -452,6 +497,7 @@ def end_quietlist(cli, server, bot_nick, chan, mode, message):
 
     handle_endlistmode(cli, chan, mode)
 
+
 @hook("endofexceptlist")
 def end_banexemptlist(cli, server, bot_nick, chan, message):
     """Handle the end of the ban exempt list.
@@ -467,6 +513,7 @@ def end_banexemptlist(cli, server, bot_nick, chan, message):
     """
 
     handle_endlistmode(cli, chan, "e")
+
 
 @hook("endofinvitelist")
 def end_inviteexemptlist(cli, server, bot_nick, chan, message):
@@ -484,7 +531,9 @@ def end_inviteexemptlist(cli, server, bot_nick, chan, message):
 
     handle_endlistmode(cli, chan, "I")
 
+
 ### NICK handling
+
 
 @hook("nick")
 def on_nick_change(cli, old_rawnick, nick):
@@ -498,12 +547,14 @@ def on_nick_change(cli, old_rawnick, nick):
 
     """
 
-    user = users._get(old_rawnick, allow_bot=True) # FIXME
+    user = users._get(old_rawnick, allow_bot=True)  # FIXME
     user.nick = nick
 
     Event("nick_change", {}).dispatch(var, user, old_rawnick)
 
+
 ### ACCOUNT handling
+
 
 @hook("account")
 def on_account_change(cli, rawnick, account):
@@ -519,12 +570,14 @@ def on_account_change(cli, rawnick, account):
 
     """
 
-    user = users._add(cli, nick=rawnick) # FIXME
-    user.account = account # We don't pass it to add(), since we want to grab the existing one (if any)
+    user = users._add(cli, nick=rawnick)  # FIXME
+    user.account = account  # We don't pass it to add(), since we want to grab the existing one (if any)
 
     Event("account_change", {}).dispatch(var, user)
 
+
 ### JOIN handling
+
 
 @hook("join")
 def join_chan(cli, rawnick, chan, account=None, realname=None):
@@ -554,7 +607,7 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
     ch = channels.add(chan, cli)
     ch.state = channels._States.Joined
 
-    user = users._add(cli, nick=rawnick, realname=realname, account=account) # FIXME
+    user = users._add(cli, nick=rawnick, realname=realname, account=account)  # FIXME
     ch.users.add(user)
     user.channels[ch] = set()
     # mark the user as here, in case they used to be connected before but left
@@ -567,7 +620,9 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
 
     Event("chan_join", {}).dispatch(var, ch, user)
 
+
 ### PART handling
+
 
 @hook("part")
 def part_chan(cli, rawnick, chan, reason=""):
@@ -586,15 +641,17 @@ def part_chan(cli, rawnick, chan, reason=""):
     """
 
     ch = channels.add(chan, cli)
-    user = users._add(cli, nick=rawnick) # FIXME
+    user = users._add(cli, nick=rawnick)  # FIXME
     Event("chan_part", {}).dispatch(var, ch, user, reason)
 
-    if user is users.Bot: # oh snap! we're no longer in the channel!
+    if user is users.Bot:  # oh snap! we're no longer in the channel!
         ch._clear()
     else:
         ch.remove_user(user)
 
+
 ### KICK handling
+
 
 @hook("kick")
 def kicked_from_chan(cli, rawnick, chan, target, reason):
@@ -611,8 +668,8 @@ def kicked_from_chan(cli, rawnick, chan, target, reason):
     """
 
     ch = channels.add(chan, cli)
-    actor = users._add(cli, nick=rawnick) # FIXME
-    user = users._add(cli, nick=target) # FIXME
+    actor = users._add(cli, nick=rawnick)  # FIXME
+    user = users._add(cli, nick=target)  # FIXME
     Event("chan_kick", {}).dispatch(var, ch, actor, user, reason)
 
     if user is users.Bot:
@@ -620,7 +677,9 @@ def kicked_from_chan(cli, rawnick, chan, target, reason):
     else:
         ch.remove_user(user)
 
+
 ### QUIT handling
+
 
 def quit(context, message=""):
     """Quit the bot from IRC."""
@@ -634,6 +693,7 @@ def quit(context, message=""):
     with cli:
         cli.send("QUIT :{0}".format(message))
 
+
 @hook("quit")
 def on_quit(cli, rawnick, reason):
     """Handle a user quitting the IRC server.
@@ -646,7 +706,7 @@ def on_quit(cli, rawnick, reason):
 
     """
 
-    user = users._add(cli, nick=rawnick) # FIXME
+    user = users._add(cli, nick=rawnick)  # FIXME
     Event("server_quit", {}).dispatch(var, user, reason)
 
     for chan in set(user.channels):
@@ -654,5 +714,6 @@ def on_quit(cli, rawnick, reason):
             chan._clear()
         else:
             chan.remove_user(user)
+
 
 # vim: set sw=4 expandtab:

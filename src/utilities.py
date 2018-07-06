@@ -8,12 +8,34 @@ from src import debuglog
 from src.events import Event
 from src.messages import messages
 
-__all__ = ["pm", "is_fake_nick", "mass_mode", "mass_privmsg", "reply",
-           "is_user_simple", "is_user_notice", "in_wolflist",
-           "relay_wolfchat_command", "irc_lower", "irc_equals", "match_hostmask",
-           "is_owner", "is_admin", "plural", "singular", "list_players",
-           "get_role", "get_roles", "change_role", "role_order", "break_long_message",
-           "complete_match", "complete_one_match", "get_victim", "InvalidModeException"]
+__all__ = [
+    "pm",
+    "is_fake_nick",
+    "mass_mode",
+    "mass_privmsg",
+    "reply",
+    "is_user_simple",
+    "is_user_notice",
+    "in_wolflist",
+    "relay_wolfchat_command",
+    "irc_lower",
+    "irc_equals",
+    "match_hostmask",
+    "is_owner",
+    "is_admin",
+    "plural",
+    "singular",
+    "list_players",
+    "get_role",
+    "get_roles",
+    "change_role",
+    "role_order",
+    "break_long_message",
+    "complete_match",
+    "complete_one_match",
+    "get_victim",
+    "InvalidModeException",
+]
 # message either privmsg or notice, depending on user settings
 def pm(cli, target, message):
     if is_fake_nick(target) and botconfig.DEBUG_MODE:
@@ -26,7 +48,9 @@ def pm(cli, target, message):
 
     cli.msg(target, message)
 
+
 is_fake_nick = re.compile(r"^[0-9]+$").search
+
 
 def mass_mode(cli, md_param, md_plain):
     """ Example: mass_mode(cli, [('+v', 'asdf'), ('-v','wobosd')], ['-m']) """
@@ -37,14 +61,15 @@ def mass_mode(cli, md_param, md_plain):
                 z = list(zip(*md_param[start_i:]))  # zip this remainder
                 ei = lmd % var.MODELIMIT  # len(z)
             else:
-                z = list(zip(*md_param[start_i:start_i+var.MODELIMIT])) # zip four
-                ei = var.MODELIMIT # len(z)
+                z = list(zip(*md_param[start_i : start_i + var.MODELIMIT]))  # zip four
+                ei = var.MODELIMIT  # len(z)
             # Now z equal something like [('+v', '-v'), ('asdf', 'wobosd')]
             arg1 = "".join(md_plain) + "".join(z[0])
             arg2 = " ".join(z[1])  # + " " + " ".join([x+"!*@*" for x in z[1]])
             cli.mode(botconfig.CHANNEL, arg1, arg2)
     elif md_plain:
-            cli.mode(botconfig.CHANNEL, "".join(md_plain))
+        cli.mode(botconfig.CHANNEL, "".join(md_plain))
+
 
 def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
     if not targets:
@@ -64,16 +89,16 @@ def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
                 bgs = ",".join(msg_targs)
                 msg_targs = None
             else:
-                bgs = ",".join(msg_targs[:var.MAX_PRIVMSG_TARGETS])
-                msg_targs = msg_targs[var.MAX_PRIVMSG_TARGETS:]
+                bgs = ",".join(msg_targs[: var.MAX_PRIVMSG_TARGETS])
+                msg_targs = msg_targs[var.MAX_PRIVMSG_TARGETS :]
             cli.msg(bgs, msg)
         while not_targs:
             if len(not_targs) <= var.MAX_PRIVMSG_TARGETS:
                 bgs = ",".join(not_targs)
                 not_targs = None
             else:
-                bgs = ",".join(not_targs[:var.MAX_PRIVMSG_TARGETS])
-                not_targs = not_targs[var.MAX_PRIVMSG_TARGETS:]
+                bgs = ",".join(not_targs[: var.MAX_PRIVMSG_TARGETS])
+                not_targs = not_targs[var.MAX_PRIVMSG_TARGETS :]
             cli.notice(bgs, msg)
     else:
         while targets:
@@ -81,26 +106,32 @@ def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
                 bgs = ",".join(targets)
                 targets = None
             else:
-                bgs = ",".join(targets[:var.MAX_PRIVMSG_TARGETS])
-                target = targets[var.MAX_PRIVMSG_TARGETS:]
+                bgs = ",".join(targets[: var.MAX_PRIVMSG_TARGETS])
+                target = targets[var.MAX_PRIVMSG_TARGETS :]
             if notice:
                 cli.notice(bgs, msg)
             else:
                 cli.msg(bgs, msg)
 
+
 # Decide how to reply to a user, depending on the channel / query it was called in, and whether a game is running and they are playing
 def reply(cli, nick, chan, msg, private=False, prefix_nick=False):
     if chan == nick:
         pm(cli, nick, msg)
-    elif private or (chan == botconfig.CHANNEL and
-            ((nick not in list_players() and var.PHASE in var.GAME_PHASES) or
-             (var.DEVOICE_DURING_NIGHT and var.PHASE == "night"))):
+    elif private or (
+        chan == botconfig.CHANNEL
+        and (
+            (nick not in list_players() and var.PHASE in var.GAME_PHASES)
+            or (var.DEVOICE_DURING_NIGHT and var.PHASE == "night")
+        )
+    ):
         cli.notice(nick, msg)
     else:
         if prefix_nick:
             cli.msg(chan, "{0}: {1}".format(nick, msg))
         else:
             cli.msg(chan, msg)
+
 
 def is_user_simple(nick):
     if nick in var.USERS:
@@ -119,8 +150,14 @@ def is_user_simple(nick):
                 return True
     return False
 
+
 def is_user_notice(nick):
-    if nick in var.USERS and var.USERS[nick]["account"] and var.USERS[nick]["account"] != "*" and not var.DISABLE_ACCOUNTS:
+    if (
+        nick in var.USERS
+        and var.USERS[nick]["account"]
+        and var.USERS[nick]["account"] != "*"
+        and not var.DISABLE_ACCOUNTS
+    ):
         if irc_lower(var.USERS[nick]["account"]) in var.PREFER_NOTICE_ACCS:
             return True
     if nick in var.USERS and not var.ACCOUNTS_ONLY:
@@ -130,6 +167,7 @@ def is_user_notice(nick):
             if match_hostmask(hostmask, nick, ident, host):
                 return True
     return False
+
 
 def in_wolflist(nick, who):
     myrole = get_role(nick)
@@ -141,6 +179,7 @@ def in_wolflist(nick, who):
         else:
             wolves = var.WOLF_ROLES | {"traitor"}
     return myrole in wolves and role in wolves
+
 
 def relay_wolfchat_command(cli, nick, message, roles, is_wolf_command=False, is_kill_command=False):
     if not is_wolf_command and var.RESTRICT_WOLFCHAT & var.RW_NO_INTERACTION:
@@ -173,16 +212,12 @@ def relay_wolfchat_command(cli, nick, message, roles, is_wolf_command=False, is_
     if var.SPECTATING_WOLFCHAT:
         player.send_messages()
 
+
 def irc_lower(nick):
     if nick is None:
         return None
 
-    mapping = {
-        "[": "{",
-        "]": "}",
-        "\\": "|",
-        "^": "~",
-    }
+    mapping = {"[": "{", "]": "}", "\\": "|", "^": "~"}
 
     # var.CASEMAPPING may not be defined yet in some circumstances (like database upgrades)
     # if so, default to rfc1459
@@ -194,19 +229,24 @@ def irc_lower(nick):
 
     return nick.lower().translate(str.maketrans(mapping))
 
+
 def irc_equals(nick1, nick2):
     return irc_lower(nick1) == irc_lower(nick2)
 
+
 def match_hostmask(hostmask, nick, ident, host):
     # support n!u@h, u@h, or just h by itself
-    matches = re.match('(?:(?:(.*?)!)?(.*?)@)?(.*)', hostmask)
+    matches = re.match("(?:(?:(.*?)!)?(.*?)@)?(.*)", hostmask)
 
-    if ((not matches.group(1) or fnmatch.fnmatch(irc_lower(nick), irc_lower(matches.group(1)))) and
-            (not matches.group(2) or fnmatch.fnmatch(irc_lower(ident), irc_lower(matches.group(2)))) and
-            fnmatch.fnmatch(host.lower(), matches.group(3).lower())):
+    if (
+        (not matches.group(1) or fnmatch.fnmatch(irc_lower(nick), irc_lower(matches.group(1))))
+        and (not matches.group(2) or fnmatch.fnmatch(irc_lower(ident), irc_lower(matches.group(2))))
+        and fnmatch.fnmatch(host.lower(), matches.group(3).lower())
+    ):
         return True
 
     return False
+
 
 def is_owner(nick, ident=None, host=None, acc=None):
     hosts = set(botconfig.OWNERS)
@@ -230,6 +270,7 @@ def is_owner(nick, ident=None, host=None, acc=None):
                 return True
 
     return False
+
 
 def is_admin(nick, ident=None, host=None, acc=None):
     if nick in var.USERS:
@@ -264,6 +305,7 @@ def is_admin(nick, ident=None, host=None, acc=None):
 
     return True
 
+
 def plural(role, count=2):
     if count == 1:
         return role
@@ -272,12 +314,15 @@ def plural(role, count=2):
         bits[-1] = plural(bits[-1][:-2], count)
         bits[-1] += "'" if bits[-1][-1] == "s" else "'s"
     else:
-        bits[-1] = {"person": "people",
-                    "wolf": "wolves",
-                    "has": "have",
-                    "succubus": "succubi",
-                    "child": "children"}.get(bits[-1], bits[-1] + "s")
+        bits[-1] = {
+            "person": "people",
+            "wolf": "wolves",
+            "has": "have",
+            "succubus": "succubi",
+            "child": "children",
+        }.get(bits[-1], bits[-1] + "s")
     return " ".join(bits)
+
 
 def singular(plural):
     # converse of plural above (kinda)
@@ -288,23 +333,26 @@ def singular(plural):
     # fool is present since we store fool wins as 'fool' rather than
     # 'fools' as only a single fool wins, however we don't want to
     # chop off the l and have it report 'foo wins'
-    conv = {"wolves": "wolf",
-            "succubi": "succubus",
-            "fool": "fool"}
+    conv = {"wolves": "wolf", "succubi": "succubus", "fool": "fool"}
     if plural in conv:
         return conv[plural]
     # otherwise we just added an s on the end
     return plural[:-1]
 
+
 def list_players(roles=None, *, mainroles=None):
     from src.functions import get_players
+
     return [p.nick for p in get_players(roles, mainroles=mainroles)]
+
 
 def get_role(p):
     # TODO DEPRECATED: replace with get_main_role(user)
     from src import users
     from src.functions import get_main_role
+
     return get_main_role(users._get(p))
+
 
 def get_roles(*roles, rolemap=None):
     if rolemap is None:
@@ -313,6 +361,7 @@ def get_roles(*roles, rolemap=None):
     for role in roles:
         all_roles.append(rolemap[role])
     return [u.nick for u in itertools.chain(*all_roles)]
+
 
 # TODO: move this to functions.py
 def change_role(user, oldrole, newrole, set_final=True):
@@ -324,9 +373,11 @@ def change_role(user, oldrole, newrole, set_final=True):
         if set_final:
             var.FINAL_ROLES[user.nick] = newrole
 
+
 role_order = lambda: var.ROLE_GUIDE
 
-def break_long_message(phrases, joinstr = " "):
+
+def break_long_message(phrases, joinstr=" "):
     message = []
     count = 0
     for phrase in phrases:
@@ -342,7 +393,8 @@ def break_long_message(phrases, joinstr = " "):
             message.append(phrase)
     return joinstr.join(message)
 
-#completes a partial nickname or string from a list
+
+# completes a partial nickname or string from a list
 def complete_match(string, matches):
     possible_matches = set()
     for possible in matches:
@@ -352,15 +404,18 @@ def complete_match(string, matches):
             possible_matches.add(possible)
     return sorted(possible_matches)
 
+
 def complete_one_match(string, matches):
-    matches = complete_match(string,matches) 
+    matches = complete_match(string, matches)
     if len(matches) == 1:
         return matches.pop()
     return None
 
-#wrapper around complete_match() used for roles
+
+# wrapper around complete_match() used for roles
 def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False):
     from src import users
+
     chan = botconfig.CHANNEL if in_chan else nick
     if not victim:
         reply(cli, nick, chan, messages["not_enough_parameters"], private=True)
@@ -368,19 +423,22 @@ def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False
     pl = [x for x in list_players() if x != nick or self_in_list]
     pll = [x.lower() for x in pl]
 
-    if bot_in_list: # for villagergame
+    if bot_in_list:  # for villagergame
         pl.append(users.Bot.nick)
         pll.append(users.Bot.nick.lower())
 
     tempvictims = complete_match(victim.lower(), pll)
     if len(tempvictims) != 1:
-        #ensure messages about not being able to act on yourself work
+        # ensure messages about not being able to act on yourself work
         if len(tempvictims) == 0 and nick.lower().startswith(victim.lower()):
             return nick
         reply(cli, nick, chan, messages["not_playing"].format(victim), private=True)
         return
-    return pl[pll.index(tempvictims.pop())] #convert back to normal casing
+    return pl[pll.index(tempvictims.pop())]  # convert back to normal casing
 
-class InvalidModeException(Exception): pass
+
+class InvalidModeException(Exception):
+    pass
+
 
 # vim: set sw=4 expandtab:

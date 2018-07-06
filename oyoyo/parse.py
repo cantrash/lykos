@@ -39,7 +39,7 @@ def parse_raw_irc_command(element):
     <crlf>     ::= CR LF
     """
     parts = element.strip().split(bytes(" ", "utf_8"))
-    if parts[0].startswith(bytes(':', 'utf_8')):
+    if parts[0].startswith(bytes(":", "utf_8")):
         prefix = parts[0][1:]
         command = parts[1]
         args = parts[2:]
@@ -54,14 +54,15 @@ def parse_raw_irc_command(element):
         except KeyError:
             pass
     command = command.lower()
-    if isinstance(command, bytes): command = command.decode("utf_8")
+    if isinstance(command, bytes):
+        command = command.decode("utf_8")
 
-    if args[0].startswith(bytes(':', 'utf_8')):
+    if args[0].startswith(bytes(":", "utf_8")):
         args = [bytes(" ", "utf_8").join(args)[1:]]
     else:
         for idx, arg in enumerate(args):
-            if arg.startswith(bytes(':', 'utf_8')):
-                args = args[:idx] + [bytes(" ", 'utf_8').join(args[idx:])[1:]]
+            if arg.startswith(bytes(":", "utf_8")):
+                args = args[:idx] + [bytes(" ", "utf_8").join(args[idx:])[1:]]
                 break
 
     return (prefix, command, args)
@@ -74,15 +75,15 @@ def parse_nick(name):
     """
 
     try:
-        nick, rest = name.split('!')
+        nick, rest = name.split("!")
     except ValueError:
         return (name, None, None, None)
     try:
-        mode, rest = rest.split('=')
+        mode, rest = rest.split("=")
     except ValueError:
         mode, rest = None, rest
     try:
-        user, host = rest.split('@')
+        user, host = rest.split("@")
     except ValueError:
         return (nick, mode, rest, None)
 

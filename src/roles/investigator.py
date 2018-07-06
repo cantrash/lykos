@@ -15,6 +15,7 @@ from src.events import Event
 
 INVESTIGATED = set()
 
+
 @command("id", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("investigator",))
 def investigate(var, wrapper, message):
     """Investigate two players to determine their relationship to each other."""
@@ -58,11 +59,11 @@ def investigate(var, wrapper, message):
         t2role = var.AMNESIAC_ROLES[target2.nick]
 
     evt = Event("investigate", {"role": t1role})
-    evt.dispatch(wrapper.client, var, wrapper.source.nick, target1.nick) # FIXME
+    evt.dispatch(wrapper.client, var, wrapper.source.nick, target1.nick)  # FIXME
     t1role = evt.data["role"]
 
     evt = Event("investigate", {"role": t2role})
-    evt.dispatch(wrapper.client, var, wrapper.source.nick, target2.nick) # FIXME
+    evt.dispatch(wrapper.client, var, wrapper.source.nick, target2.nick)  # FIXME
     t2role = evt.data["role"]
 
     # FIXME: make a standardized way of getting team affiliation, and make
@@ -93,9 +94,17 @@ def investigate(var, wrapper, message):
         wrapper.pm(messages["investigator_results_different"].format(target1, target2))
 
     INVESTIGATED.add(wrapper.source)
-    debuglog("{0} (investigator) ID: {1} ({2}) and {3} ({4}) as {5}".format(
-        wrapper.source, target1, get_main_role(target1), target2, get_main_role(target2),
-        "same" if same else "different"))
+    debuglog(
+        "{0} (investigator) ID: {1} ({2}) and {3} ({4}) as {5}".format(
+            wrapper.source,
+            target1,
+            get_main_role(target1),
+            target2,
+            get_main_role(target2),
+            "same" if same else "different",
+        )
+    )
+
 
 @event_listener("swap_player")
 def on_swap(evt, var, old_user, user):
@@ -103,13 +112,16 @@ def on_swap(evt, var, old_user, user):
         INVESTIGATED.discard(old_user)
         INVESTIGATED.add(user)
 
+
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     INVESTIGATED.discard(user)
 
+
 @event_listener("get_special")
 def on_get_special(evt, var):
     evt.data["special"].update(get_players(("investigator",)))
+
 
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
@@ -117,6 +129,7 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
         INVESTIGATED.discard(actor)
     elif target_role == "investigator" and actor_role != "investigator":
         INVESTIGATED.discard(targe)
+
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
@@ -130,12 +143,15 @@ def on_transition_night_end(evt, var):
             to_send = "investigator_simple"
         inv.send(messages[to_send], "Players: " + ", ".join(p.nick for p in pl), sep="\n")
 
+
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, cli, var):
     INVESTIGATED.clear()
 
+
 @event_listener("reset")
 def on_reset(evt, var):
     INVESTIGATED.clear()
+
 
 # vim: set sw=4 expandtab:

@@ -23,11 +23,13 @@ from src.events import Event
 def on_chk_nightdone(evt, var):
     pass
 
+
 # Set evt.data["acted"] = True if target acted during night and spy is able to know that info
 # Used for werecrow and insomniac
 @event_listener("night_acted")
 def on_night_acted(evt, var, target, spy):
     pass
+
 
 # PM players who have this role with instructions
 # Set priority=2 if this is a main role, and priority=5 if this is a secondary role
@@ -36,10 +38,12 @@ def on_night_acted(evt, var, target, spy):
 def on_transition_night_end(evt, var):
     pass
 
+
 # Update any role state that happens when someone with this role exchanges with someone else.
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
     pass
+
 
 # Update evt.data["special"] with the Users who have this role as their main role,
 # assuming this is some sort of special role (can act). Do *not* update this if this is a wolfteam
@@ -49,21 +53,25 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
 def on_get_special(evt, var):
     pass
 
+
 # Update any game state which happens when player dies. If this role does things upon death,
 # ensure that you check death_triggers (it's a bool) before firing it.
 @event_listener("del_player")
 def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
     pass
 
+
 # Clear all game state. Called whenever the game ends.
 @event_listener("reset")
 def on_reset(evt, var):
     pass
 
+
 # Swap out a user with a different one. Update all game state to use the new User.
 @event_listener("swap_player")
 def on_swap_player(evt, var, old, new):
     pass
+
 
 # Gets metadata about this role; kind will be a str with one of the following values:
 # night_kills: Add metadata about any deaths this role can cause at night which use the standard

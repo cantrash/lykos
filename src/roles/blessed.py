@@ -13,6 +13,7 @@ from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
 
+
 @event_listener("transition_day", priority=4.3)
 def on_transition_day(evt, var):
     pl = get_players()
@@ -32,6 +33,7 @@ def on_transition_day(evt, var):
         elif v in get_all_players(("blessed villager",)):
             var.ACTIVE_PROTECTIONS[v.nick].append("blessing")
 
+
 @event_listener("transition_day_resolve", priority=2)
 def on_transition_day_resolve(evt, var, victim):
     if evt.data["protected"].get(victim) == "blessing":
@@ -40,6 +42,7 @@ def on_transition_day_resolve(evt, var, victim):
         # any good reason to hide that info from them. In any case, we don't want to say the blessed person was attacked to the channel
         evt.stop_processing = True
         evt.prevent_default = True
+
 
 @event_listener("transition_night_end", priority=5)
 def on_transition_night_end(evt, var):
@@ -50,6 +53,7 @@ def on_transition_night_end(evt, var):
                 to_send = "blessed_simple"
             blessed.send(messages[to_send])
 
+
 @event_listener("desperation_totem")
 def on_desperation(evt, cli, var, votee, target, prot):
     if prot == "blessing":
@@ -57,12 +61,14 @@ def on_desperation(evt, cli, var, votee, target, prot):
         evt.prevent_default = True
         evt.stop_processing = True
 
+
 @event_listener("retribution_totem")
 def on_retribution(evt, var, victim, target, prot):
     if prot == "blessing":
         var.ACTIVE_PROTECTIONS[target.nick].remove("blessing")
         evt.prevent_default = True
         evt.stop_processing = True
+
 
 @event_listener("assassinate")
 def on_assassinate(evt, var, killer, target, prot):
@@ -73,9 +79,11 @@ def on_assassinate(evt, var, killer, target, prot):
         # don't message the channel whenever a blessing blocks a kill, but *do* let the killer know so they don't try to report it as a bug
         killer.send(messages["assassin_fail_blessed"].format(target))
 
+
 @event_listener("myrole")
 def on_myrole(evt, var, user):
     if user in var.ROLES["blessed villager"]:
         evt.data["messages"].append(messages["blessed_simple"])
+
 
 # vim: set sw=4 expandtab:

@@ -11,8 +11,9 @@ from src.messages import messages
 from src.events import Event
 import botconfig
 
-KILLS = {} # type: Dict[users.User, users.User]
-TARGETS = {} # type: Dict[users.User, Set[users.User]]
+KILLS = {}  # type: Dict[users.User, users.User]
+TARGETS = {}  # type: Dict[users.User, Set[users.User]]
+
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("dullahan",))
 def dullahan_kill(var, wrapper, message):
@@ -38,11 +39,13 @@ def dullahan_kill(var, wrapper, message):
 
     debuglog("{0} (dullahan) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
+
 @command("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("dullahan",))
 def dullahan_retract(var, wrapper, message):
     """Removes a dullahan's kill selection."""
     if KILLS.pop(wrapper.source, None):
         wrapper.pm(messages["retracted_kill"])
+
 
 @event_listener("player_win")
 def on_player_win(evt, var, user, role, winner, survived):
@@ -51,6 +54,7 @@ def on_player_win(evt, var, user, role, winner, survived):
     alive = set(get_players())
     if not TARGETS[user] & alive:
         evt.data["iwon"] = True
+
 
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
@@ -66,17 +70,20 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
         if targets:
             target = random.choice(list(targets))
             prots = deque(var.ACTIVE_PROTECTIONS[target.nick])
-            aevt = Event("assassinate", {"pl": evt.data["pl"], "target": target},
-                    del_player=evt.params.del_player,
-                    deadlist=evt.params.deadlist,
-                    original=evt.params.original,
-                    refresh_pl=evt.params.refresh_pl,
-                    message_prefix="dullahan_die_",
-                    source="dullahan",
-                    killer=user,
-                    killer_mainrole=mainrole,
-                    killer_allroles=allroles,
-                    prots=prots)
+            aevt = Event(
+                "assassinate",
+                {"pl": evt.data["pl"], "target": target},
+                del_player=evt.params.del_player,
+                deadlist=evt.params.deadlist,
+                original=evt.params.original,
+                refresh_pl=evt.params.refresh_pl,
+                message_prefix="dullahan_die_",
+                source="dullahan",
+                killer=user,
+                killer_mainrole=mainrole,
+                killer_allroles=allroles,
+                prots=prots,
+            )
             while len(prots) > 0:
                 # an event can read the current active protection and cancel or redirect the assassination
                 # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
@@ -98,13 +105,22 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             else:
                 channels.Main.send(messages["dullahan_die_success_noreveal"].format(user, target))
             debuglog("{0} (dullahan) DULLAHAN ASSASSINATE: {1} ({2})".format(user, target, get_main_role(target)))
-            evt.params.del_player(target, end_game=False, killer_role="dullahan", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
+            evt.params.del_player(
+                target,
+                end_game=False,
+                killer_role="dullahan",
+                deadlist=evt.params.deadlist,
+                original=evt.params.original,
+                ismain=False,
+            )
             evt.data["pl"] = evt.params.refresh_pl(pl)
+
 
 @event_listener("night_acted")
 def on_acted(evt, var, user, actor):
     if user in KILLS:
         evt.data["acted"] = True
+
 
 @event_listener("swap_player")
 def on_swap(evt, var, old_user, user):
@@ -122,9 +138,11 @@ def on_swap(evt, var, old_user, user):
             targets.remove(old_user)
             targets.add(user)
 
+
 @event_listener("get_special")
 def on_get_special(evt, var):
     evt.data["special"].update(get_players(("dullahan",)))
+
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, var):
@@ -133,6 +151,7 @@ def on_transition_day(evt, var):
         evt.data["victims"].append(d)
         evt.data["onlybywolves"].discard(d)
         evt.data["killers"][d].append(k)
+
 
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
@@ -146,6 +165,7 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
         elif target_role == "dullahan" and actor_role != "dullahan" and k is target:
             TARGET[actor] = TARGETS.pop(k) - {actor}
 
+
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     spl = set(get_players())
@@ -154,14 +174,15 @@ def on_chk_nightdone(evt, var):
         if targets & spl:
             evt.data["nightroles"].append(dullahan)
 
+
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
     for dullahan in get_all_players(("dullahan",)):
         targets = list(TARGETS[dullahan])
         for target in targets[:]:
             if target.nick in var.DEAD:
-                targets.remove(target) # FIXME: Update when var.DEAD holds User instances
-        if not targets: # already all dead
+                targets.remove(target)  # FIXME: Update when var.DEAD holds User instances
+        if not targets:  # already all dead
             dullahan.send("{0} {1}".format(messages["dullahan_simple"], messages["dullahan_targets_dead"]))
             continue
         random.shuffle(targets)
@@ -171,6 +192,7 @@ def on_transition_night_end(evt, var):
         t = messages["dullahan_targets"] if var.FIRST_NIGHT else messages["dullahan_remaining_targets"]
         dullahan.send(messages[to_send], t + ", ".join(t.nick for t in targets), sep="\n")
 
+
 @event_listener("role_assignment")
 def on_role_assignment(evt, cli, var, gamemode, pl, restart):
     # assign random targets to dullahan to kill
@@ -178,10 +200,10 @@ def on_role_assignment(evt, cli, var, gamemode, pl, restart):
         max_targets = math.ceil(8.1 * math.log(len(pl), 10) - 5)
         for dull in var.ROLES["dullahan"]:
             TARGETS[dull] = set()
-        dull_targets = Event("dullahan_targets", {"targets": TARGETS}) # support sleepy
+        dull_targets = Event("dullahan_targets", {"targets": TARGETS})  # support sleepy
         dull_targets.dispatch(cli, var, var.ROLES["dullahan"], max_targets)
 
-        players = [users._get(x) for x in pl] # FIXME
+        players = [users._get(x) for x in pl]  # FIXME
 
         for dull, ts in TARGETS.items():
             ps = players[:]
@@ -191,6 +213,7 @@ def on_role_assignment(evt, cli, var, gamemode, pl, restart):
                 ps.remove(target)
                 ts.add(target)
 
+
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, var, succubus, target):
     if target in TARGETS and succubus in TARGETS[target]:
@@ -199,6 +222,7 @@ def on_succubus_visit(evt, var, succubus, target):
     if target in KILLS and KILLS[target] in get_all_players(("succubus",)):
         target.send(messages["no_kill_succubus"].format(KILLS[target]))
         del KILLS[target]
+
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):
@@ -215,27 +239,31 @@ def on_myrole(evt, var, user):
         else:
             evt.data["messages"].append(messages["dullahan_targets_dead"])
 
+
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, wrapper, nickname, role):
-    user = users._get(nickname) # FIXME
-    if role == "dullahan" and user in TARGETS: # FIXME
+    user = users._get(nickname)  # FIXME
+    if role == "dullahan" and user in TARGETS:  # FIXME
         targets = set(TARGETS[user])
         for target in TARGETS[user]:
             if target.nick in var.DEAD:
                 targets.remove(target)
-        if targets: 
+        if targets:
             evt.data["special_case"].append(messages["dullahan_to_kill"].format(", ".join(t.nick for t in targets)))
         else:
             evt.data["special_case"].append(messages["dullahan_all_dead"])
+
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     KILLS.clear()
 
+
 @event_listener("reset")
 def on_reset(evt, var):
     KILLS.clear()
     TARGETS.clear()
+
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
@@ -247,5 +275,6 @@ def on_get_role_metadata(evt, var, kind):
                     num += 1
                     break
         evt.data["dullahan"] = num
+
 
 # vim: set sw=4 expandtab:

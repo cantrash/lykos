@@ -7,11 +7,12 @@ from src.events import Event
 from src import settings as var
 from src import users
 
-Main = None # main channel
-Dummy = None # fake channel
-Dev = None # dev channel
+Main = None  # main channel
+Dummy = None  # fake channel
+Dev = None  # dev channel
 
 _channels = {}
+
 
 class _States(Enum):
     NotJoined = "not yet joined"
@@ -22,11 +23,13 @@ class _States(Enum):
 
     Cleared = "cleared"
 
+
 # This is used to tell if this is a fake channel or not. If this
 # function returns a true value, then it's a fake channel. This is
 # useful for testing, where we might want the users in fake channels.
 def predicate(name):
     return not name.startswith(tuple(Features["CHANTYPES"]))
+
 
 def get(name, *, allow_none=False):
     try:
@@ -35,6 +38,7 @@ def get(name, *, allow_none=False):
         if allow_none:
             return None
         raise
+
 
 def add(name, cli, key=""):
     """Add and return a new channel, or an existing one if it exists."""
@@ -60,13 +64,16 @@ def add(name, cli, key=""):
     chan.join()
     return chan
 
+
 def exists(name):
     """Return True if a channel by the name exists, False otherwise."""
     return lower(name) in _channels
 
+
 def channels():
     """Iterate over all the current channels."""
     yield from _channels.values()
+
 
 class Channel(IRCContext):
 
@@ -146,7 +153,7 @@ class Channel(IRCContext):
 
         """
 
-        if not changes: # bare call; get channel modes
+        if not changes:  # bare call; get channel modes
             self.client.send("MODE", self.name)
             return
 
@@ -159,7 +166,7 @@ class Channel(IRCContext):
             if len(mode) < 2:
                 mode = "+" + mode
             params.append((mode, target))
-        params.sort(key=lambda x: x[0][0]) # sort by prefix
+        params.sort(key=lambda x: x[0][0])  # sort by prefix
 
         while params:
             cur, params = params[:max_modes], params[max_modes:]
@@ -175,7 +182,7 @@ class Channel(IRCContext):
                 final.append(mode)
 
             for target in targets:
-                if target is not None: # target will be None if the mode is parameter-less
+                if target is not None:  # target will be None if the mode is parameter-less
                     final.append(" ")
                     final.append("{0}".format(target))
 
@@ -192,7 +199,7 @@ class Channel(IRCContext):
 
         """
 
-        set_time = int(time.time()) # for list modes timestamp
+        set_time = int(time.time())  # for list modes timestamp
         list_modes, all_set, only_set, no_set = Features["CHANMODES"]
         status_modes = Features["PREFIX"].values()
 
@@ -203,36 +210,36 @@ class Channel(IRCContext):
                 continue
 
             if prefix == "+":
-                if c in status_modes: # op/voice status; keep it here and update the user's registry too
+                if c in status_modes:  # op/voice status; keep it here and update the user's registry too
                     if c not in self.modes:
                         self.modes[c] = set()
-                    user = users._get(targets[i], allow_bot=True) # FIXME
+                    user = users._get(targets[i], allow_bot=True)  # FIXME
                     self.modes[c].add(user)
                     user.channels[self].add(c)
                     if user in var.OLD_MODES:
                         var.OLD_MODES[user].discard(c)
                     i += 1
 
-                elif c in list_modes: # stuff like bans, quiets, and ban and invite exempts
+                elif c in list_modes:  # stuff like bans, quiets, and ban and invite exempts
                     if c not in self.modes:
                         self.modes[c] = {}
                     self.modes[c][targets[i]] = (actor.rawnick, set_time)
                     i += 1
 
                 else:
-                    if c in no_set: # everything else; e.g. +m, +i, +f, etc.
+                    if c in no_set:  # everything else; e.g. +m, +i, +f, etc.
                         targ = None
                     else:
                         targ = targets[i]
                         i += 1
-                    if c in only_set and targ.isdigit(): # +l/+j
+                    if c in only_set and targ.isdigit():  # +l/+j
                         targ = int(targ)
                     self.modes[c] = targ
 
             else:
                 if c in status_modes:
                     if c in self.modes:
-                        user = users._get(targets[i], allow_bot=True) # FIXME
+                        user = users._get(targets[i], allow_bot=True)  # FIXME
                         self.modes[c].discard(user)
                         user.channels[self].discard(c)
                         if not self.modes[c]:
@@ -248,7 +255,7 @@ class Channel(IRCContext):
 
                 else:
                     if c in all_set:
-                        i += 1 # -k needs a target, but we don't care about it
+                        i += 1  # -k needs a target, but we don't care about it
                     del self.modes[c]
 
         if "k" in mode:
@@ -262,7 +269,7 @@ class Channel(IRCContext):
                 if not self.modes[mode]:
                     del self.modes[mode]
         del user.channels[self]
-        if not user.channels: # Only fire if the user left all channels
+        if not user.channels:  # Only fire if the user left all channels
             event = Event("cleanup_user", {})
             event.dispatch(var, user)
 
@@ -274,6 +281,7 @@ class Channel(IRCContext):
         self.state = _States.Cleared
         self.timestamp = None
         del _channels[lower(self.name)]
+
 
 class FakeChannel(Channel):
 
@@ -294,7 +302,7 @@ class FakeChannel(Channel):
 
         for change in changes:
             if isinstance(change, str):
-                if change.startswith(("+", "-")): # we're probably asking for the list modes otherwise
+                if change.startswith(("+", "-")):  # we're probably asking for the list modes otherwise
                     modes.append(change)
             else:
                 mode, target = change
@@ -303,5 +311,6 @@ class FakeChannel(Channel):
                     targets.append(target)
 
         self.update_modes(users.Bot.rawnick, "".join(modes), targets)
+
 
 # vim: set sw=4 expandtab:

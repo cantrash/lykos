@@ -35,6 +35,7 @@ class TokenBucket(object):
     >>> bucket = TokenBucket(80, 0.5)
     >>> bucket.consume(1)
     """
+
     def __init__(self, tokens, fill_rate):
         """tokens is the total tokens in the bucket. fill_rate is the
         rate in tokens/second that the bucket will be refilled."""
@@ -61,7 +62,10 @@ class TokenBucket(object):
         return self._tokens
 
     def __repr__(self):
-        return "{self.__class__.__name__}(capacity={self.capacity}, fill rate={self.fill_rate}, tokens={self.tokens})".format(self=self)
+        return "{self.__class__.__name__}(capacity={self.capacity}, fill rate={self.fill_rate}, tokens={self.tokens})".format(
+            self=self
+        )
+
 
 class IRCClient:
     """ IRC Client class. This handles one connection to a server.
@@ -119,7 +123,7 @@ class IRCClient:
         return self
 
     def __exit__(self, exc, value, tb):
-        return False # TODO: make this into a proper context manager
+        return False  # TODO: make this into a proper context manager
 
     def send(self, *args, **kwargs):
         """ send a message to the connected server. all arguments are joined
@@ -137,9 +141,9 @@ class IRCClient:
         """
         with self.lock:
             # Convert all args to bytes if not already
-            encoding = kwargs.get('encoding') or 'utf_8'
+            encoding = kwargs.get("encoding") or "utf_8"
             bargs = []
-            for i,arg in enumerate(args):
+            for i, arg in enumerate(args):
                 if isinstance(arg, str):
                     bargs.append(bytes(arg, encoding))
                 elif isinstance(arg, bytes):
@@ -147,13 +151,15 @@ class IRCClient:
                 elif arg is None:
                     continue
                 else:
-                    raise Exception(('Refusing to send arg at index {1} of the args from '+
-                                     'provided: {0}').format(repr([(type(arg), arg)
-                                                                   for arg in args]), i))
+                    raise Exception(
+                        ("Refusing to send arg at index {1} of the args from " + "provided: {0}").format(
+                            repr([(type(arg), arg) for arg in args]), i
+                        )
+                    )
 
             msg = bytes(" ", "utf_8").join(bargs)
             logmsg = kwargs.get("log") or str(msg)[1:]
-            self.stream_handler('---> send {0}'.format(logmsg))
+            self.stream_handler("---> send {0}".format(logmsg))
 
             while not self.tokenbucket.consume(1):
                 time.sleep(0.3)
@@ -177,7 +183,7 @@ class IRCClient:
                     break
                 except socket.error as e:
                     retries += 1
-                    self.stream_handler('Error: {0}'.format(e), level="warning")
+                    self.stream_handler("Error: {0}".format(e), level="warning")
                     if retries > 3:
                         sys.exit(1)
 
@@ -188,8 +194,12 @@ class IRCClient:
                     try:
                         ctx.set_ciphers(self.cipher_list)
                     except Exception:
-                        self.stream_handler("No ciphers could be selected from the cipher list. TLS is not available.", level="warning")
-                        self.stream_handler("Use `openssl ciphers' to see which ciphers are available on this system.", level="warning")
+                        self.stream_handler(
+                            "No ciphers could be selected from the cipher list. TLS is not available.", level="warning"
+                        )
+                        self.stream_handler(
+                            "Use `openssl ciphers' to see which ciphers are available on this system.", level="warning"
+                        )
                         raise
 
                 # explicitly disable old protocols
@@ -212,7 +222,10 @@ class IRCClient:
 
                     ctx.load_default_certs()
                 elif not self.cert_verify and not self.cert_fp:
-                    self.stream_handler("**NOT** validating the server's TLS certificate! Set SSL_VERIFY or SSL_CERTFP in botconfig.py.", level="warning")
+                    self.stream_handler(
+                        "**NOT** validating the server's TLS certificate! Set SSL_VERIFY or SSL_CERTFP in botconfig.py.",
+                        level="warning",
+                    )
 
                 if self.client_certfile:
                     # if client_keyfile is not specified, the ssl module will look to the client_certfile for it.
@@ -240,8 +253,13 @@ class IRCClient:
                     peercertfp = h.hexdigest()
 
                     if peercertfp not in valid_fps:
-                        self.stream_handler("Certificate fingerprint {0} did not match any expected fingerprints".format(peercertfp), level="error")
-                        raise ssl.CertificateError("Certificate fingerprint {0} did not match any expected fingerprints".format(peercertfp))
+                        self.stream_handler(
+                            "Certificate fingerprint {0} did not match any expected fingerprints".format(peercertfp),
+                            level="error",
+                        )
+                        raise ssl.CertificateError(
+                            "Certificate fingerprint {0} did not match any expected fingerprints".format(peercertfp)
+                        )
                     self.stream_handler("Server certificate fingerprint matched {0}".format(peercertfp), level="info")
 
                 self.stream_handler("Connected with cipher {0}".format(self.socket.cipher()[0]), level="info")
@@ -251,11 +269,10 @@ class IRCClient:
 
             self.send("CAP LS 302")
 
-            if (self.server_pass and "{password}" in self.server_pass
-                    and self.password and not self.sasl_auth):
+            if self.server_pass and "{password}" in self.server_pass and self.password and not self.sasl_auth:
                 message = "PASS :{0}".format(self.server_pass).format(
-                    account=self.authname if self.authname else self.nickname,
-                    password=self.password)
+                    account=self.authname if self.authname else self.nickname, password=self.password
+                )
                 self.send(message, log="PASS :[redacted]")
             elif self.server_pass:
                 message = "PASS :{0}".format(self.server_pass)
@@ -290,20 +307,22 @@ class IRCClient:
 
                         try:
                             enc = "utf8"
-                            fargs = [arg.decode(enc) for arg in args if isinstance(arg,bytes)]
+                            fargs = [arg.decode(enc) for arg in args if isinstance(arg, bytes)]
                         except UnicodeDecodeError:
                             enc = "latin1"
-                            fargs = [arg.decode(enc) for arg in args if isinstance(arg,bytes)]
+                            fargs = [arg.decode(enc) for arg in args if isinstance(arg, bytes)]
 
                         try:
                             largs = list(args)
                             if prefix is not None:
                                 prefix = prefix.decode(enc)
-                            self.stream_handler("<--- receive {0} {1} ({2})".format(prefix, command, ", ".join(fargs)), level="debug")
+                            self.stream_handler(
+                                "<--- receive {0} {1} ({2})".format(prefix, command, ", ".join(fargs)), level="debug"
+                            )
                             # for i,arg in enumerate(largs):
-                                # if arg is not None: largs[i] = arg.decode(enc)
+                            # if arg is not None: largs[i] = arg.decode(enc)
                             if command in self.command_handler:
-                                self.command_handler[command](self, prefix,*fargs)
+                                self.command_handler[command](self, prefix, *fargs)
                             elif "" in self.command_handler:
                                 self.command_handler[""](self, prefix, command, *fargs)
                         except Exception as e:
@@ -312,12 +331,13 @@ class IRCClient:
                 yield True
         finally:
             if self.socket:
-                self.stream_handler('closing socket')
+                self.stream_handler("closing socket")
                 self.socket.close()
                 yield False
+
     def msg(self, user, msg):
-        for line in msg.split('\n'):
-            maxchars = 494 - len(self.nickname+self.ident+self.hostmask+user)
+        for line in msg.split("\n"):
+            maxchars = 494 - len(self.nickname + self.ident + self.hostmask + user)
             while line:
                 extra = ""
                 if len(line) > maxchars:
@@ -325,10 +345,12 @@ class IRCClient:
                     line = line[:maxchars]
                 self.send("PRIVMSG", user, ":{0}".format(line))
                 line = extra
+
     privmsg = msg  # Same thing
+
     def notice(self, user, msg):
-        for line in msg.split('\n'):
-            maxchars = 495 - len(self.nickname+self.ident+self.hostmask+user)
+        for line in msg.split("\n"):
+            maxchars = 495 - len(self.nickname + self.ident + self.hostmask + user)
             while line:
                 extra = ""
                 if len(line) > maxchars:
@@ -336,37 +358,50 @@ class IRCClient:
                     line = line[:maxchars]
                 self.send("NOTICE", user, ":{0}".format(line))
                 line = extra
+
     def join(self, channel):
         self.send("JOIN {0}".format(channel))
+
     def quit(self, msg=""):
         self.send("QUIT :{0}".format(msg))
+
     def part(self, chan, msg=""):
         self.send("PART {0} :{1}".format(chan, msg))
+
     def mode(self, *args):
         self.send("MODE {0}".format(" ".join(args)))
+
     def kick(self, chan, nick, msg=""):
-        self.send("KICK", chan, nick, ":"+msg)
+        self.send("KICK", chan, nick, ":" + msg)
+
     def who(self, *args):
         self.send("WHO {0}".format(" ".join(args)))
+
     def ns_identify(self, account, passwd, nickserv, command):
         if command:
             self.msg(nickserv, command.format(account=account, password=passwd))
+
     def ns_ghost(self, nick, password, nickserv, command):
         if command:
             self.msg(nickserv, command.format(nick=nick, password=password))
+
     def ns_release(self, nick, password, nickserv="NickServ", command="RELEASE {nick}"):
         if command:
             self.msg(nickserv, command.format(nick=nick, password=password))
+
     def ns_regain(self, nick, password, nickserv="NickServ", command="REGAIN {nick}"):
         if command:
             self.msg(nickserv, command.format(nick=nick, password=password))
+
     def user(self, ident, rname):
         self.send("USER", ident, self.host, self.host, ":{0}".format(rname or ident))
+
     def mainLoop(self):
         conn = self.connect()
         while True:
             if not next(conn):
                 self.stream_handler("Calling sys.exit()...", level="warning")
                 sys.exit()
+
 
 # vim: set sw=4 expandtab:

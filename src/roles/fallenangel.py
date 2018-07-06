@@ -13,6 +13,7 @@ from src.functions import get_players, get_all_players
 from src.messages import messages
 from src.events import Event
 
+
 @event_listener("transition_day", priority=4.8)
 def on_transition_day(evt, var):
     # now that all protections are finished, add people back to onlybywolves
@@ -41,6 +42,7 @@ def on_transition_day(evt, var):
                 # this is important as there may otherwise be no killers if every kill was blocked
                 evt.data["killers"][p].append(killer)
 
+
 @event_listener("assassinate", priority=1)
 def on_assassinate(evt, var, killer, target, prot):
     # bypass all protection if FA is doing the killing
@@ -49,5 +51,6 @@ def on_assassinate(evt, var, killer, target, prot):
         evt.params.prots.clear()
         evt.stop_processing = True
         evt.prevent_default = True
+
 
 # vim: set sw=4 expandtab:

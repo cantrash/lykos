@@ -12,6 +12,7 @@ from src.events import Event
 WILD_CHILDREN = set()
 IDOLS = {}
 
+
 @cmd("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("wild child",))
 def choose_idol(cli, nick, chan, rest):
     """Pick your idol, if they die, you'll become a wolf!"""
@@ -34,10 +35,12 @@ def choose_idol(cli, nick, chan, rest):
 
     debuglog("{0} (wild child) IDOLIZE: {1} ({2})".format(nick, victim, get_role(victim)))
 
+
 @event_listener("see")
 def on_see(evt, cli, var, seer, victim):
     if victim in WILD_CHILDREN:
         evt.data["role"] = "wild child"
+
 
 @event_listener("rename_player")
 def on_rename(evt, cli, var, prefix, nick):
@@ -51,6 +54,7 @@ def on_rename(evt, cli, var, prefix, nick):
             del IDOLS[wildchild]
         elif idol == prefix:
             IDOLS[wildchild] = nick
+
 
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
@@ -73,10 +77,12 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
         IDOLS[actor.nick] = IDOLS.pop(target.nick)
         evt.data["actor_messages"].append(messages["wild_child_idol"].format(IDOLS[actor.nick]))
 
+
 @event_listener("myrole")
 def on_myrole(evt, var, user):
     if user.nick in IDOLS:
         evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[user.nick]))
+
 
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
@@ -84,7 +90,11 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
         return
 
     for child in get_all_players(("wild child",)):
-        if child.nick not in IDOLS or child in evt.params.deadlist or users._get(IDOLS[child.nick]) not in evt.params.deadlist: # FIXME
+        if (
+            child.nick not in IDOLS
+            or child in evt.params.deadlist
+            or users._get(IDOLS[child.nick]) not in evt.params.deadlist
+        ):  # FIXME
             continue
 
         # change their main role to wolf, even if wild child was a template
@@ -120,11 +130,13 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             else:
                 child.send(messages["no_other_wolves"])
 
+
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     if var.FIRST_NIGHT:
         evt.data["actedcount"] += len(IDOLS.keys())
         evt.data["nightroles"].extend(get_all_players(("wild child",)))
+
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
@@ -138,6 +150,7 @@ def on_transition_day_begin(evt, var):
                     IDOLS[child.nick] = target.nick
                     child.send(messages["wild_child_random_idol"].format(target))
 
+
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
     for child in get_all_players(("wild child",)):
@@ -145,6 +158,7 @@ def on_transition_night_end(evt, var):
         if child.prefers_simple():
             to_send = "child_simple"
         child.send(messages[to_send])
+
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, wrapper, nick, role):
@@ -154,14 +168,17 @@ def on_revealroles_role(evt, var, wrapper, nick, role):
         else:
             evt.data["special_case"].append("no idol picked yet")
 
+
 @event_listener("get_reveal_role")
 def on_get_reveal_role(evt, var, user):
     if user.nick in WILD_CHILDREN:
         evt.data["role"] = "wild child"
 
+
 @event_listener("reset")
 def on_reset(evt, var):
     WILD_CHILDREN.clear()
     IDOLS.clear()
+
 
 # vim: set sw=4 expandtab:

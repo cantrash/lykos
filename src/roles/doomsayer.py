@@ -16,6 +16,7 @@ LYCANS = {}
 
 _mappings = ("death", KILLS), ("lycan", LYCANS), ("sick", SICK)
 
+
 @cmd("see", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("doomsayer",))
 def see(cli, nick, chan, rest):
     """Use your paranormal senses to determine a player's doom."""
@@ -23,7 +24,7 @@ def see(cli, nick, chan, rest):
     if nick in SEEN:
         pm(cli, nick, messages["seer_fail"])
         return
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
+    victim = get_victim(cli, nick, re.split(" +", rest)[0], False)
     if not victim:
         return
 
@@ -34,8 +35,8 @@ def see(cli, nick, chan, rest):
         pm(cli, nick, messages["no_see_wolf"])
         return
 
-    doomsayer = users._get(nick) # FIXME
-    target = users._get(victim) # FIXME
+    doomsayer = users._get(nick)  # FIXME
+    target = users._get(victim)  # FIXME
 
     evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
     evt.dispatch(var, "see", doomsayer, target, frozenset({"detrimental", "immediate"}))
@@ -50,9 +51,12 @@ def see(cli, nick, chan, rest):
         mapping[nick] = victim
 
     debuglog("{0} ({1}) SEE: {2} ({3}) - {4}".format(nick, role, victim, victimrole, mode.upper()))
-    relay_wolfchat_command(cli, nick, messages["doomsayer_wolfchat"].format(nick, victim), ("doomsayer",), is_wolf_command=True)
+    relay_wolfchat_command(
+        cli, nick, messages["doomsayer_wolfchat"].format(nick, victim), ("doomsayer",), is_wolf_command=True
+    )
 
     SEEN.add(nick)
+
 
 @event_listener("rename_player")
 def on_rename(evt, cli, var, prefix, nick):
@@ -71,10 +75,12 @@ def on_rename(evt, cli, var, prefix, nick):
         if prefix in dictvar:
             del dictvar[prefix]
 
+
 @event_listener("night_acted")
 def on_acted(evt, var, user, actor):
     if user.nick in SEEN:
         evt.data["acted"] = True
+
 
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
@@ -88,6 +94,7 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
         for name, mapping in _mappings:
             mapping.pop(target.nick, None)
 
+
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     SEEN.discard(user.nick)
@@ -95,6 +102,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
         for k, v in list(dictvar.items()):
             if user.nick in (k, v):
                 del dictvar[k]
+
 
 @event_listener("doctor_immunize")
 def on_doctor_immunize(evt, cli, var, doctor, target):
@@ -104,14 +112,17 @@ def on_doctor_immunize(evt, cli, var, doctor, target):
                 del SICK[n]
         evt.data["message"] = "not_sick"
 
+
 @event_listener("get_special")
 def on_get_special(evt, var):
     evt.data["special"].update(get_players(("doomsayer",)))
+
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(SEEN)
     evt.data["nightroles"].extend(get_all_players(("doomsayer",)))
+
 
 @event_listener("abstain")
 def on_abstain(evt, cli, var, nick):
@@ -119,15 +130,18 @@ def on_abstain(evt, cli, var, nick):
         pm(cli, nick, messages["illness_no_vote"])
         evt.prevent_default = True
 
+
 @event_listener("lynch")
 def on_lynch(evt, cli, var, nick):
     if nick in SICK.values():
         pm(cli, nick, messages["illness_no_vote"])
         evt.prevent_default = True
 
+
 @event_listener("get_voters")
 def on_get_voters(evt, var):
     evt.data["voters"].difference_update(SICK.values())
+
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
@@ -137,11 +151,12 @@ def on_transition_day_begin(evt, var):
     if SICK:
         user.send_messages()
 
+
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, var):
     for k, v in list(KILLS.items()):
-        killer = users._get(k) # FIXME
-        victim = users._get(v) # FIXME
+        killer = users._get(k)  # FIXME
+        victim = users._get(v)  # FIXME
         evt.data["victims"].append(victim)
         # even though doomsayer is a wolf, remove from onlybywolves since
         # that particular item indicates that they were the target of a wolf !kill.
@@ -149,6 +164,7 @@ def on_transition_day(evt, var):
         # die if they are the target of a doomsayer !see that ends up killing the target.
         evt.data["onlybywolves"].discard(victim)
         evt.data["killers"][victim].append(killer)
+
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
@@ -160,9 +176,11 @@ def on_begin_day(evt, var):
     KILLS.clear()
     LYCANS.clear()
 
+
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, cli, var):
     SICK.clear()
+
 
 @event_listener("reset")
 def on_reset(evt, var):
@@ -170,5 +188,6 @@ def on_reset(evt, var):
     KILLS.clear()
     SICK.clear()
     LYCANS.clear()
+
 
 # vim: set sw=4 expandtab:

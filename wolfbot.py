@@ -29,21 +29,30 @@ if ver < (3, 3):
     print("You are currently using {0}.{1}.{2}".format(ver[0], ver[1], ver[2]))
     sys.exit(1)
 
-try: # need to manually add dependencies here
-    import typing # Python >= 3.5
-    import enum # Python >= 3.4
+try:  # need to manually add dependencies here
+    import typing  # Python >= 3.5
+    import enum  # Python >= 3.4
 except ImportError:
     command = "python3"
     if os.name == "nt":
         command = "py -3"
-    print("\n".join(["*** Missing dependencies! ***".center(80),
-          "Please install the missing dependencies by running the following command:",
-          "{0} -m pip install --user -r requirements.txt".format(command), "",
-          "If you don't have pip and don't know how to install it, follow this link:",
-          "https://pip.pypa.io/en/stable/installing/", "",
-          "If you need any further help with setting up and/or running the bot,",
-          "  we will be happy to help you in #lykos on irc.freenode.net", "",
-          "- The lykos developers"]))
+    print(
+        "\n".join(
+            [
+                "*** Missing dependencies! ***".center(80),
+                "Please install the missing dependencies by running the following command:",
+                "{0} -m pip install --user -r requirements.txt".format(command),
+                "",
+                "If you don't have pip and don't know how to install it, follow this link:",
+                "https://pip.pypa.io/en/stable/installing/",
+                "",
+                "If you need any further help with setting up and/or running the bot,",
+                "  we will be happy to help you in #lykos on irc.freenode.net",
+                "",
+                "- The lykos developers",
+            ]
+        )
+    )
     sys.exit(1)
 
 from oyoyo.client import IRCClient
@@ -53,31 +62,30 @@ from src import handler
 from src.events import Event
 import src.settings as var
 
+
 def main():
     evt = Event("init", {})
     evt.dispatch()
     src.plog("Connecting to {0}:{1}{2}".format(botconfig.HOST, "+" if botconfig.USE_SSL else "", botconfig.PORT))
     cli = IRCClient(
-                      {"privmsg": lambda *s: None,
-                       "notice": lambda *s: None,
-                       "": handler.unhandled},
-                     host=botconfig.HOST,
-                     port=botconfig.PORT,
-                     authname=botconfig.USERNAME,
-                     password=botconfig.PASS,
-                     nickname=botconfig.NICK,
-                     ident=botconfig.IDENT,
-                     real_name=botconfig.REALNAME,
-                     sasl_auth=botconfig.SASL_AUTHENTICATION,
-                     server_pass=botconfig.SERVER_PASS,
-                     use_ssl=botconfig.USE_SSL,
-                     cert_verify=var.SSL_VERIFY,
-                     cert_fp=var.SSL_CERTFP,
-                     client_certfile=var.SSL_CERTFILE,
-                     client_keyfile=var.SSL_KEYFILE,
-                     cipher_list=var.SSL_CIPHERS,
-                     connect_cb=handler.connect_callback,
-                     stream_handler=src.stream,
+        {"privmsg": lambda *s: None, "notice": lambda *s: None, "": handler.unhandled},
+        host=botconfig.HOST,
+        port=botconfig.PORT,
+        authname=botconfig.USERNAME,
+        password=botconfig.PASS,
+        nickname=botconfig.NICK,
+        ident=botconfig.IDENT,
+        real_name=botconfig.REALNAME,
+        sasl_auth=botconfig.SASL_AUTHENTICATION,
+        server_pass=botconfig.SERVER_PASS,
+        use_ssl=botconfig.USE_SSL,
+        cert_verify=var.SSL_VERIFY,
+        cert_fp=var.SSL_CERTFP,
+        client_certfile=var.SSL_CERTFILE,
+        client_keyfile=var.SSL_KEYFILE,
+        cipher_list=var.SSL_CIPHERS,
+        connect_cb=handler.connect_callback,
+        stream_handler=src.stream,
     )
     cli.mainLoop()
 

@@ -13,11 +13,22 @@ from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
 
-GUARDED = {} # type: Dict[str, str]
-LASTGUARDED = {} # type: Dict[str, str]
-PASSED = set() # type: Set[str]
+GUARDED = {}  # type: Dict[str, str]
+LASTGUARDED = {}  # type: Dict[str, str]
+PASSED = set()  # type: Set[str]
 
-@cmd("guard", "protect", "save", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("bodyguard", "guardian angel"))
+
+@cmd(
+    "guard",
+    "protect",
+    "save",
+    chan=False,
+    pm=True,
+    playing=True,
+    silenced=True,
+    phases=("night",),
+    roles=("bodyguard", "guardian angel"),
+)
 def guard(cli, nick, chan, rest):
     """Guard a player, preventing them from being killed that night."""
     if nick in GUARDED:
@@ -25,7 +36,7 @@ def guard(cli, nick, chan, rest):
         return
     role = get_role(nick)
     self_in_list = role == "guardian angel" and var.GUARDIAN_ANGEL_CAN_GUARD_SELF
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], False, self_in_list)
+    victim = get_victim(cli, nick, re.split(" +", rest)[0], False, self_in_list)
     if not victim:
         return
     if (role == "bodyguard" or not var.GUARDIAN_ANGEL_CAN_GUARD_SELF) and victim == nick:
@@ -35,11 +46,13 @@ def guard(cli, nick, chan, rest):
         pm(cli, nick, messages["guardian_target_another"].format(victim))
         return
 
-    angel = users._get(nick) # FIXME
-    target = users._get(victim) # FIXME
+    angel = users._get(nick)  # FIXME
+    target = users._get(victim)  # FIXME
 
     # self-guard ignores luck/misdirection/exchange totem
-    evt = Event("targeted_command", {"target": target, "misdirection": (angel is not target), "exchange": (angel is not target)})
+    evt = Event(
+        "targeted_command", {"target": target, "misdirection": (angel is not target), "exchange": (angel is not target)}
+    )
     if not evt.dispatch(var, "guard", angel, target, frozenset({"beneficial"})):
         return
     victim = evt.data["target"].nick
@@ -52,6 +65,7 @@ def guard(cli, nick, chan, rest):
         pm(cli, victim, messages["target_protected"])
     debuglog("{0} ({1}) GUARD: {2} ({3})".format(nick, role, victim, get_role(victim)))
 
+
 @cmd("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("bodyguard", "guardian angel"))
 def pass_cmd(cli, nick, chan, rest):
     """Decline to use your special power for that night."""
@@ -62,11 +76,12 @@ def pass_cmd(cli, nick, chan, rest):
     pm(cli, nick, messages["guardian_no_protect"])
     debuglog("{0} ({1}) PASS".format(nick, get_role(nick)))
 
+
 @event_listener("rename_player")
 def on_rename(evt, cli, var, prefix, nick):
     for dictvar in (GUARDED, LASTGUARDED):
         kvp = {}
-        for a,b in dictvar.items():
+        for a, b in dictvar.items():
             if a == prefix:
                 if b == prefix:
                     kvp[nick] = nick
@@ -81,44 +96,50 @@ def on_rename(evt, cli, var, prefix, nick):
         PASSED.discard(prefix)
         PASSED.add(nick)
 
+
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     if var.PHASE == "night" and user.nick in GUARDED:
         pm(user.client, GUARDED[user.nick], messages["protector_disappeared"])
     for dictvar in (GUARDED, LASTGUARDED):
-        for k,v in list(dictvar.items()):
+        for k, v in list(dictvar.items()):
             if user.nick in (k, v):
                 del dictvar[k]
     PASSED.discard(user.nick)
+
 
 @event_listener("night_acted")
 def on_acted(evt, var, user, actor):
     if user.nick in GUARDED:
         evt.data["acted"] = True
 
+
 @event_listener("get_special")
 def on_get_special(evt, var):
     evt.data["special"].update(get_players(("guardian angel", "bodyguard")))
+
 
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
     if actor_role in ("bodyguard", "guardian angel"):
         if actor.nick in GUARDED:
-            guarded = users._get(GUARDED.pop(actor.nick)) # FIXME
+            guarded = users._get(GUARDED.pop(actor.nick))  # FIXME
             guarded.send(messages["protector disappeared"])
         if actor.nick in LASTGUARDED:
             del LASTGUARDED[actor.nick]
     if target_role in ("bodyguard", "guardian angel"):
         if target.nick in GUARDED:
-            guarded = users._get(GUARDED.pop(target.nick)) # FIXME
+            guarded = users._get(GUARDED.pop(target.nick))  # FIXME
             guarded.send(messages["protector disappeared"])
         if target.nick in LASTGUARDED:
             del LASTGUARDED[target.nick]
+
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(GUARDED) + len(PASSED)
     evt.data["nightroles"].extend(get_players(("guardian angel", "bodyguard")))
+
 
 @event_listener("transition_day", priority=4.2)
 def on_transition_day(evt, var):
@@ -154,6 +175,7 @@ def on_transition_day(evt, var):
                 if GUARDED.get(g.nick) == v.nick:
                     var.ACTIVE_PROTECTIONS[v.nick].append("bodyguard")
 
+
 @event_listener("fallen_angel_guard_break")
 def on_fagb(evt, var, user, killer):
     for g in get_all_players(("guardian angel",)):
@@ -180,6 +202,7 @@ def on_fagb(evt, var, user, killer):
             if g is not user:
                 g.send(messages["fallen_angel_success"].format(user))
 
+
 @event_listener("transition_day_resolve", priority=2)
 def on_transition_day_resolve(evt, var, victim):
     if evt.data["protected"].get(victim) == "angel":
@@ -197,36 +220,47 @@ def on_transition_day_resolve(evt, var, victim):
                 evt.prevent_default = True
                 break
 
+
 @event_listener("transition_day_resolve_end")
 def on_transition_day_resolve_end(evt, var, victims):
     for bodyguard in get_all_players(("bodyguard",)):
-        if GUARDED.get(bodyguard.nick) in list_players(var.WOLF_ROLES) and bodyguard not in evt.data["dead"] and bodyguard not in evt.data["bitten"]:
+        if (
+            GUARDED.get(bodyguard.nick) in list_players(var.WOLF_ROLES)
+            and bodyguard not in evt.data["dead"]
+            and bodyguard not in evt.data["bitten"]
+        ):
             r = random.random()
             if r < var.BODYGUARD_DIES_CHANCE:
                 evt.data["bywolves"].add(bodyguard)
                 evt.data["onlybywolves"].add(bodyguard)
                 if var.ROLE_REVEAL == "on":
                     evt.data["message"].append(messages["bodyguard_protected_wolf"].format(bodyguard))
-                else: # off and team
+                else:  # off and team
                     evt.data["message"].append(messages["bodyguard_protection"].format(bodyguard))
                 evt.data["dead"].append(bodyguard)
     for gangel in get_all_players(("guardian angel",)):
-        if GUARDED.get(gangel.nick) in list_players(var.WOLF_ROLES) and gangel not in evt.data["dead"] and gangel not in evt.data["bitten"]:
+        if (
+            GUARDED.get(gangel.nick) in list_players(var.WOLF_ROLES)
+            and gangel not in evt.data["dead"]
+            and gangel not in evt.data["bitten"]
+        ):
             r = random.random()
             if r < var.GUARDIAN_ANGEL_DIES_CHANCE:
                 evt.data["bywolves"].add(gangel)
                 evt.data["onlybywolves"].add(gangel)
                 if var.ROLE_REVEAL == "on":
                     evt.data["message"].append(messages["guardian_angel_protected_wolf"].format(gangel))
-                else: # off and team
+                else:  # off and team
                     evt.data["message"].append(messages["guardian_angel_protected_wolf_no_reveal"].format(gangel))
                 evt.data["dead"].append(gangel)
+
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, cli, var):
     # needs to be here in order to allow bodyguard protections to work during the daytime
     # (right now they don't due to other reasons, but that may change)
     GUARDED.clear()
+
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
@@ -254,7 +288,7 @@ def on_transition_night_end(evt, var):
             pl.remove(gangel)
             gself = ""
         if gangel.nick in LASTGUARDED:
-            user = users._get(LASTGUARDED[gangel.nick]) # FIXME
+            user = users._get(LASTGUARDED[gangel.nick])  # FIXME
             if user in pl:
                 pl.remove(user)
         chance = math.floor(var.GUARDIAN_ANGEL_DIES_CHANCE * 100)
@@ -266,6 +300,7 @@ def on_transition_night_end(evt, var):
         if gangel.prefers_simple():
             to_send = "guardian_simple"
         gangel.send(messages[to_send].format(warning, gself), "Players: " + ", ".join(p.nick for p in pl), sep="\n")
+
 
 @event_listener("assassinate")
 def on_assassinate(evt, var, killer, target, prot):
@@ -285,6 +320,7 @@ def on_assassinate(evt, var, killer, target, prot):
                 evt.data["target"] = bg
                 break
 
+
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     PASSED.clear()
@@ -293,10 +329,12 @@ def on_begin_day(evt, var):
         if g not in GUARDED:
             del LASTGUARDED[g]
 
+
 @event_listener("reset")
 def on_reset(evt, var):
     GUARDED.clear()
     LASTGUARDED.clear()
     PASSED.clear()
+
 
 # vim: set sw=4 expandtab:

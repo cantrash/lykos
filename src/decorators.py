@@ -27,9 +27,11 @@ HOOKS = defaultdict(list)
 
 # Error handler decorators and context managers
 
+
 class _local(threading.local):
     handler = None
     level = 0
+
 
 _local = _local()
 
@@ -40,8 +42,8 @@ _local = _local()
 
 _tracebacks = {}
 
-class chain_exceptions:
 
+class chain_exceptions:
     def __init__(self, exc, *, suppress_context=False):
         self.exc = exc
         self.suppress_context = suppress_context
@@ -62,8 +64,8 @@ class chain_exceptions:
     def traceback(self):
         return "".join(traceback.format_exception(type(self.exc), self.exc, self.exc.__traceback__))
 
-class print_traceback:
 
+class print_traceback:
     def __enter__(self):
         _local.level += 1
         return self
@@ -79,7 +81,7 @@ class print_traceback:
 
         if _local.level > 1:
             _local.level -= 1
-            return False # the outermost caller should handle this
+            return False  # the outermost caller should handle this
 
         variables = ["", None]
 
@@ -137,21 +139,22 @@ class print_traceback:
 
                 data = None
                 with _local.handler:
-                    req = urllib.request.Request(api_url, urllib.parse.urlencode({
-                            "c": "\n".join(variables),  # contents
-                        }).encode("utf-8", "replace"))
+                    req = urllib.request.Request(
+                        api_url,
+                        urllib.parse.urlencode({"c": "\n".join(variables)}).encode("utf-8", "replace"),  # contents
+                    )
 
                     req.add_header("Accept", "application/json")
                     resp = urllib.request.urlopen(req)
                     data = json.loads(resp.read().decode("utf-8"))
 
-                if data is None: # couldn't fetch the link
+                if data is None:  # couldn't fetch the link
                     message.append(messages["error_pastebin"])
-                    variables[1] = _local.handler.traceback # an error happened; update the stored traceback
+                    variables[1] = _local.handler.traceback  # an error happened; update the stored traceback
                 else:
                     link, uuid = _tracebacks["\n".join(variables)] = (data["url"] + "/pytb", data.get("uuid"))
                     message.append(link)
-                    if uuid is None: # if there's no uuid, the paste already exists and we don't have it
+                    if uuid is None:  # if there's no uuid, the paste already exists and we don't have it
                         message.append("(Already reported by another instance)")
                     else:
                         message.append("(uuid: {0})".format(uuid))
@@ -169,16 +172,16 @@ class print_traceback:
         errlog("\n".join(variables))
 
         _local.level -= 1
-        if not _local.level: # outermost caller; we're done here
+        if not _local.level:  # outermost caller; we're done here
             _local.frame_locals = None
             _local.handler = None
 
-        return True # a true return value tells the interpreter to swallow the exception
+        return True  # a true return value tells the interpreter to swallow the exception
+
 
 class handle_error:
-
     def __new__(cls, func=None, *, instance=None):
-        if isinstance(func, cls) and instance is func.instance: # already decorated
+        if isinstance(func, cls) and instance is func.instance:  # already decorated
             return func
 
         if isinstance(func, cls):
@@ -202,10 +205,22 @@ class handle_error:
         with print_traceback():
             return self.func(*args, **kwargs)
 
+
 class command:
-    def __init__(self, *commands, flag=None, owner_only=False, chan=True, pm=False,
-                 playing=False, silenced=False, phases=(), roles=(), users=None,
-                 exclusive=False):
+    def __init__(
+        self,
+        *commands,
+        flag=None,
+        owner_only=False,
+        chan=True,
+        pm=False,
+        playing=False,
+        silenced=False,
+        phases=(),
+        roles=(),
+        users=None,
+        exclusive=False
+    ):
 
         self.commands = frozenset(commands)
         self.flag = flag
@@ -216,7 +231,7 @@ class command:
         self.silenced = silenced
         self.phases = phases
         self.roles = roles
-        self.users = users # iterable of users that can use the command at any time (should be a mutable object)
+        self.users = users  # iterable of users that can use the command at any time (should be a mutable object)
         self.func = None
         self.aftergame = False
         self.name = commands[0]
@@ -227,7 +242,7 @@ class command:
         self.aliases = []
 
         if var.DISABLED_COMMANDS.intersection(commands):
-            return # command is disabled, do not add to COMMANDS
+            return  # command is disabled, do not add to COMMANDS
 
         for name in commands:
             if exclusive and name in COMMANDS:
@@ -258,9 +273,9 @@ class command:
     @handle_error
     def caller(self, cli, rawnick, chan, rest):
         _ignore_locals_ = True
-        user = users._get(rawnick, allow_none=True) # FIXME
+        user = users._get(rawnick, allow_none=True)  # FIXME
 
-        if users.equals(chan, users.Bot.nick): # PM
+        if users.equals(chan, users.Bot.nick):  # PM
             target = users.Bot
         else:
             target = channels.get(chan, allow_none=True)
@@ -271,11 +286,11 @@ class command:
         dispatcher = MessageDispatcher(user, target)
 
         if (not self.pm and dispatcher.private) or (not self.chan and dispatcher.public):
-            return # channel or PM command that we don't allow
+            return  # channel or PM command that we don't allow
 
         if dispatcher.public and target is not channels.Main and not (self.flag or self.owner_only):
             if "" in self.commands or not self.alt_allowed:
-                return # commands not allowed in alt channels
+                return  # commands not allowed in alt channels
 
         if "" in self.commands:
             self.func(var, dispatcher, rest)
@@ -294,15 +309,18 @@ class command:
             if (self.users is not None and user not in self.users) or self.roles:
                 return
 
-        if self.silenced and user.nick in var.SILENCED: # FIXME: Need to change this once var.SILENCED holds User instances
+        if (
+            self.silenced and user.nick in var.SILENCED
+        ):  # FIXME: Need to change this once var.SILENCED holds User instances
             dispatcher.pm(messages["silenced"])
             return
 
         if self.roles or (self.users is not None and user in self.users):
-            self.func(var, dispatcher, rest) # don't check restrictions for role commands
+            self.func(var, dispatcher, rest)  # don't check restrictions for role commands
             # Role commands might end the night if it's nighttime
             if var.PHASE == "night":
                 from src.wolfgame import chk_nightdone
+
                 chk_nightdone(cli)
             return
 
@@ -317,13 +335,15 @@ class command:
 
         temp = user.lower()
 
-        flags = var.FLAGS[temp.rawnick] + var.FLAGS_ACCS[temp.account] # TODO: add flags handling to User
+        flags = var.FLAGS[temp.rawnick] + var.FLAGS_ACCS[temp.account]  # TODO: add flags handling to User
 
         if self.flag and (user.is_admin() or user.is_owner()):
             adminlog(chan, rawnick, self.name, rest)
             return self.func(var, dispatcher, rest)
 
-        denied_commands = var.DENY[temp.rawnick] | var.DENY_ACCS[temp.account] # TODO: add denied commands handling to User
+        denied_commands = (
+            var.DENY[temp.rawnick] | var.DENY_ACCS[temp.account]
+        )  # TODO: add denied commands handling to User
 
         if self.commands & denied_commands:
             dispatcher.pm(messages["invalid_permissions"])
@@ -340,10 +360,22 @@ class command:
 
         self.func(var, dispatcher, rest)
 
+
 class cmd:
-    def __init__(self, *cmds, raw_nick=False, flag=None, owner_only=False,
-                 chan=True, pm=False, playing=False, silenced=False,
-                 phases=(), roles=(), nicks=None):
+    def __init__(
+        self,
+        *cmds,
+        raw_nick=False,
+        flag=None,
+        owner_only=False,
+        chan=True,
+        pm=False,
+        playing=False,
+        silenced=False,
+        phases=(),
+        roles=(),
+        nicks=None
+    ):
 
         self.cmds = cmds
         self.raw_nick = raw_nick
@@ -355,21 +387,20 @@ class cmd:
         self.silenced = silenced
         self.phases = phases
         self.roles = roles
-        self.nicks = nicks # iterable of nicks that can use the command at any time (should be a mutable object)
+        self.nicks = nicks  # iterable of nicks that can use the command at any time (should be a mutable object)
         self.func = None
         self.aftergame = False
         self.name = cmds[0]
-        self.exclusive = False # for compatibility with new command API
+        self.exclusive = False  # for compatibility with new command API
 
         alias = False
         self.aliases = []
         if var.DISABLED_COMMANDS.intersection(cmds):
-            return # command is disabled, do not add to COMMANDS
+            return  # command is disabled, do not add to COMMANDS
 
         for name in cmds:
             for func in COMMANDS[name]:
-                if (func.owner_only != owner_only or
-                    func.flag != flag):
+                if func.owner_only != owner_only or func.flag != flag:
                     raise ValueError("unmatching protection levels for " + func.name)
                 if func.exclusive:
                     raise ValueError("exclusive command already exists for {0}".format(name))
@@ -407,14 +438,14 @@ class cmd:
             largs[1] = nick
 
         if not self.pm and chan == nick:
-            return # PM command, not allowed
+            return  # PM command, not allowed
 
         if not self.chan and chan != nick:
-            return # channel command, not allowed
+            return  # channel command, not allowed
 
         if chan.startswith("#") and chan != botconfig.CHANNEL and not (self.flag or self.owner_only):
             if "" in self.cmds:
-                return # don't have empty commands triggering in other channels
+                return  # don't have empty commands triggering in other channels
             for command in self.cmds:
                 if command in botconfig.ALLOWED_ALT_CHANNELS_COMMANDS:
                     break
@@ -457,10 +488,11 @@ class cmd:
             return
 
         if self.roles or (self.nicks is not None and nick in self.nicks):
-            self.func(*largs) # don't check restrictions for role commands
+            self.func(*largs)  # don't check restrictions for role commands
             # Role commands might end the night if it's nighttime
             if var.PHASE == "night":
                 from src.wolfgame import chk_nightdone
+
                 chk_nightdone(cli)
             return
 
@@ -513,6 +545,7 @@ class cmd:
 
         self.func(*largs)
 
+
 class hook:
     def __init__(self, name, hookid=-1):
         self.name = name
@@ -543,6 +576,7 @@ class hook:
             if not HOOKS[each]:
                 del HOOKS[each]
 
+
 class event_listener:
     def __init__(self, event, priority=5):
         self.event = event
@@ -563,5 +597,6 @@ class event_listener:
 
     def remove(self):
         events.remove_listener(self.event, self.func, self.priority)
+
 
 # vim: set sw=4 expandtab:

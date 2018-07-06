@@ -6,8 +6,9 @@ import src.settings as var
 MESSAGES_DIR = os.path.join(os.path.dirname(__file__), "..", "messages")
 ROOT_DIR = os.path.join(os.path.dirname(__file__), "..")
 
+
 class Messages:
-    def __init__ (self):
+    def __init__(self):
         self.lang = var.LANGUAGE
         self._load_messages()
 
@@ -33,8 +34,13 @@ class Messages:
         for key, message in custom_msgs.items():
             if key in self.messages:
                 if not isinstance(message, type(self.messages[key.lower()])):
-                    raise TypeError("messages.json: Key {0!r} must be of type {1!r}".format(key, type(self.messages[key.lower()]).__name__))
+                    raise TypeError(
+                        "messages.json: Key {0!r} must be of type {1!r}".format(
+                            key, type(self.messages[key.lower()]).__name__
+                        )
+                    )
             self.messages[key.lower()] = message
+
 
 messages = Messages()
 

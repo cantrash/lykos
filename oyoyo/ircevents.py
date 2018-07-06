@@ -114,7 +114,7 @@ numeric_events = {
     b"374": "endofinfo",
     b"375": "motdstart",
     b"376": "endofmotd",
-    b"377": "motd2",        # 1997-10-16 -- tkil
+    b"377": "motd2",  # 1997-10-16 -- tkil
     b"381": "youreoper",
     b"382": "rehashing",
     b"384": "myportis",
@@ -141,7 +141,7 @@ numeric_events = {
     b"423": "noadmininfo",
     b"424": "fileerror",
     b"431": "nonicknamegiven",
-    b"432": "erroneusnickname", # Thiss iz how its speld in thee RFC.
+    b"432": "erroneusnickname",  # Thiss iz how its speld in thee RFC.
     b"433": "nicknameinuse",
     b"436": "nickcollision",
     b"437": "unavailresource",  # "Nick temporally unavailable"
@@ -156,7 +156,7 @@ numeric_events = {
     b"462": "alreadyregistered",
     b"463": "nopermforhost",
     b"464": "passwdmismatch",
-    b"465": "yourebannedcreep", # I love this one...
+    b"465": "yourebannedcreep",  # I love this one...
     b"466": "youwillbebanned",
     b"467": "keyset",
     b"471": "channelisfull",
@@ -170,14 +170,14 @@ numeric_events = {
     b"481": "noprivileges",
     b"482": "chanoprivsneeded",
     b"483": "cantkillserver",
-    b"484": "restricted",   # Connection is restricted
+    b"484": "restricted",  # Connection is restricted
     b"485": "uniqopprivsneeded",
     b"491": "nooperhost",
     b"492": "noservicehost",
     b"501": "umodeunknownflag",
     b"502": "usersdontmatch",
     b"728": "quietlist",
-    b"729": "quietlistend"
+    b"729": "quietlistend",
 }
 
 generated_events = [

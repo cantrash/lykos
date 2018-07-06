@@ -15,12 +15,13 @@ from src import db
 # Do the same with roles
 
 try:
-    import gamemodes # type: ignore
+    import gamemodes  # type: ignore
 except ImportError:
     import src.gamemodes
 
 try:
-    import roles # type: ignore
+    import roles  # type: ignore
+
     roles.CUSTOM_ROLES_DEFINED
 except (ImportError, AttributeError):
     import src.roles
@@ -40,7 +41,7 @@ normal = False
 
 for setting, value in botconfig.__dict__.items():
     if not setting.isupper():
-        continue # Not a setting
+        continue  # Not a setting
     if setting == "DEBUG_MODE":
         debug_mode = value
     if setting == "VERBOSE_MODE":
@@ -48,21 +49,24 @@ for setting, value in botconfig.__dict__.items():
     if setting == "NORMAL_MODE":
         normal = value
     if not setting in var.__dict__.keys():
-        continue # Don't carry over config-only settings
+        continue  # Don't carry over config-only settings
 
     # If we got that far, it's valid
     setattr(var, setting, value)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--debug', action='store_true')
-parser.add_argument('--verbose', action='store_true')
-parser.add_argument('--normal', action='store_true')
+parser.add_argument("--debug", action="store_true")
+parser.add_argument("--verbose", action="store_true")
+parser.add_argument("--normal", action="store_true")
 
 args = parser.parse_args()
 
-if args.debug: debug_mode = True
-if args.verbose: verbose = True
-if args.normal: normal = True
+if args.debug:
+    debug_mode = True
+if args.verbose:
+    verbose = True
+if args.normal:
+    normal = True
 
 botconfig.DEBUG_MODE = debug_mode if not normal else False
 botconfig.VERBOSE_MODE = verbose if not normal else False

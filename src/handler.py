@@ -17,14 +17,15 @@ from src.functions import get_participants, get_all_roles
 from src.dispatcher import MessageDispatcher
 from src.decorators import handle_error, command, hook
 
+
 @handle_error
 def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
-    if notice and "!" not in rawnick or not rawnick: # server notice; we don't care about those
+    if notice and "!" not in rawnick or not rawnick:  # server notice; we don't care about those
         return
 
-    user = users._get(rawnick, allow_none=True) # FIXME
+    user = users._get(rawnick, allow_none=True)  # FIXME
 
-    if users.equals(chan, users.Bot.nick): # PM
+    if users.equals(chan, users.Bot.nick):  # PM
         target = users.Bot
     else:
         target = channels.get(chan, allow_none=True)
@@ -37,11 +38,13 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
     if wrapper.public and botconfig.IGNORE_HIDDEN_COMMANDS and not chan.startswith(tuple(hooks.Features["CHANTYPES"])):
         return
 
-    if (notice and ((wrapper.public and not botconfig.ALLOW_NOTICE_COMMANDS) or
-                    (wrapper.private and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
+    if notice and (
+        (wrapper.public and not botconfig.ALLOW_NOTICE_COMMANDS)
+        or (wrapper.private and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS)
+    ):
         return  # not allowed in settings
 
-    if force_role is None: # if force_role isn't None, that indicates recursion; don't fire these off twice
+    if force_role is None:  # if force_role isn't None, that indicates recursion; don't fire these off twice
         for fn in decorators.COMMANDS[""]:
             fn.caller(cli, rawnick, chan, msg)
 
@@ -53,12 +56,12 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
         message = ""
 
     if wrapper.public and not key.startswith(botconfig.CMD_CHAR):
-        return # channel message but no prefix; ignore
+        return  # channel message but no prefix; ignore
 
     if key.startswith(botconfig.CMD_CHAR):
-        key = key[len(botconfig.CMD_CHAR):]
+        key = key[len(botconfig.CMD_CHAR) :]
 
-    if not key: # empty key ("") already handled above
+    if not key:  # empty key ("") already handled above
         return
 
     # Don't change this into decorators.COMMANDS[key] even though it's a defaultdict,
@@ -70,9 +73,9 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
         # A user can be a participant but not have a role, for example, dead vengeful ghost
         has_roles = len(roles) != 0
         if force_role is not None:
-            roles &= {force_role} # only fire off role commands for the forced role
+            roles &= {force_role}  # only fire off role commands for the forced role
 
-        common_roles = set(roles) # roles shared by every eligible role command
+        common_roles = set(roles)  # roles shared by every eligible role command
         have_role_cmd = False
         for fn in decorators.COMMANDS.get(key, []):
             if not fn.roles:
@@ -98,7 +101,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
             # is executed. In this event, display a helpful error message instructing
             # the user to resolve the ambiguity.
             common_roles = set(roles)
-            info = [0,0]
+            info = [0, 0]
             for fn in cmds:
                 fn_roles = roles.intersection(fn.roles)
                 if not fn_roles:
@@ -122,12 +125,15 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
             # FIXME: pass in var, wrapper, message instead of cli, rawnick, chan, message
             fn.caller(cli, rawnick, chan, message)
 
+
 def unhandled(cli, prefix, cmd, *args):
     for fn in decorators.HOOKS.get(cmd, []):
         fn.caller(cli, prefix, *args)
 
+
 def ping_server(cli):
     cli.send("PING :{0}".format(time.time()))
+
 
 @command("latency", pm=True)
 def latency(var, wrapper, message):
@@ -138,6 +144,7 @@ def latency(var, wrapper, message):
         lat = round(time.time() - float(ts), 3)
         wrapper.reply(messages["latency"].format(lat, "" if lat == 1 else "s"))
         hook.unhook(300)
+
 
 def connect_callback(cli):
     regaincount = 0
@@ -153,10 +160,12 @@ def connect_callback(cli):
 
         # just in case we haven't managed to successfully auth yet
         if botconfig.PASS and not botconfig.SASL_AUTHENTICATION:
-            cli.ns_identify(botconfig.USERNAME or botconfig.NICK,
-                            botconfig.PASS,
-                            nickserv=var.NICKSERV,
-                            command=var.NICKSERV_IDENTIFY_COMMAND)
+            cli.ns_identify(
+                botconfig.USERNAME or botconfig.NICK,
+                botconfig.PASS,
+                nickserv=var.NICKSERV,
+                command=var.NICKSERV_IDENTIFY_COMMAND,
+            )
 
         channels.Main = channels.add(botconfig.CHANNEL, cli)
         channels.Dummy = channels.add("*", cli)
@@ -171,12 +180,13 @@ def connect_callback(cli):
         if var.LOG_CHANNEL:
             channels.add(var.LOG_CHANNEL, cli)
 
-        #if var.CHANSERV_OP_COMMAND: # TODO: Add somewhere else if needed
+        # if var.CHANSERV_OP_COMMAND: # TODO: Add somewhere else if needed
         #    cli.msg(var.CHANSERV, var.CHANSERV_OP_COMMAND.format(channel=botconfig.CHANNEL))
 
         users.Bot.change_nick(botconfig.NICK)
 
         if var.SERVER_PING_INTERVAL > 0:
+
             def ping_server_timer(cli):
                 ping_server(cli)
 
@@ -200,9 +210,13 @@ def connect_callback(cli):
         if not botconfig.PASS or bot_nick == nick or regaincount > 3:
             return
         if var.NICKSERV_REGAIN_COMMAND:
-            cli.ns_regain(nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_REGAIN_COMMAND)
+            cli.ns_regain(
+                nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_REGAIN_COMMAND
+            )
         else:
-            cli.ns_ghost(nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND)
+            cli.ns_ghost(
+                nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND
+            )
         # it is possible (though unlikely) that regaining the nick fails for some reason and we would loop infinitely
         # as such, keep track of a count of how many times we regain, and after 3 times we no longer attempt to regain nicks
         # Since we'd only be regaining on initial connect, this should be safe. The same trick is used below for release as well
@@ -213,11 +227,15 @@ def connect_callback(cli):
         nonlocal releasecount
 
         if not botconfig.PASS or bot_nick == nick or releasecount > 3:
-            return # prevents the bot from trying to release without a password
+            return  # prevents the bot from trying to release without a password
         if var.NICKSERV_RELEASE_COMMAND:
-            cli.ns_release(nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND)
+            cli.ns_release(
+                nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND
+            )
         else:
-            cli.ns_ghost(nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND)
+            cli.ns_ghost(
+                nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND
+            )
         releasecount += 1
         users.Bot.change_nick(botconfig.NICK)
 
@@ -226,7 +244,7 @@ def connect_callback(cli):
     def must_use_temp_nick(cli, *etc):
         users.Bot.nick += "_"
         users.Bot.change_nick()
-        cli.user(botconfig.NICK, "") # TODO: can we remove this?
+        cli.user(botconfig.NICK, "")  # TODO: can we remove this?
 
         hook.unhook(239)
         hook("unavailresource", hookid=240)(mustrelease)
@@ -246,7 +264,7 @@ def connect_callback(cli):
         nonlocal supported_sasl, selected_sasl
         # caps is a star because we might receive multiline in LS
         if cmd == "LS":
-            for item in caps[-1].split(): # First item may or may not be *, for multiline
+            for item in caps[-1].split():  # First item may or may not be *, for multiline
                 try:
                     key, value = item.split("=", 1)
                 except ValueError:
@@ -256,7 +274,7 @@ def connect_callback(cli):
                 if key == "sasl" and value is not None:
                     supported_sasl = set(value.split(","))
 
-            if caps[0] == "*": # Multiline, don't continue yet
+            if caps[0] == "*":  # Multiline, don't continue yet
                 return
 
             if botconfig.SASL_AUTHENTICATION and "sasl" not in supported_caps:
@@ -291,6 +309,7 @@ def connect_callback(cli):
             alog("Server refused capabilities: {0}".format(" ".join(caps[0])))
 
     if botconfig.SASL_AUTHENTICATION:
+
         @hook("authenticate")
         def auth_plus(cli, something, plus):
             if plus == "+":
@@ -318,10 +337,13 @@ def connect_callback(cli):
                 alog("EXTERNAL auth failed, retrying with PLAIN... ensure the client cert is set up in NickServ")
                 cli.send("AUTHENTICATE PLAIN")
             else:
-                alog("Authentication failed.  Did you fill the account name "
-                     "in botconfig.USERNAME if it's different from the bot nick?")
+                alog(
+                    "Authentication failed.  Did you fill the account name "
+                    "in botconfig.USERNAME if it's different from the bot nick?"
+                )
                 cli.quit()
 
     users.Bot = users.BotUser(cli, botconfig.NICK)
+
 
 # vim: set sw=4 expandtab:

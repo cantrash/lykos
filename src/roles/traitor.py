@@ -12,6 +12,7 @@ from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
 
+
 @event_listener("get_reveal_role")
 def on_get_reveal_role(evt, var, user):
     # in team reveal, show traitor as wolfteam, otherwise team stats won't sync with how
@@ -21,6 +22,7 @@ def on_get_reveal_role(evt, var, user):
     if evt.data["role"] == "traitor" and var.HIDDEN_TRAITOR and var.ROLE_REVEAL != "team":
         evt.data["role"] = var.DEFAULT_ROLE
 
+
 @event_listener("get_final_role")
 def on_get_final_role(evt, cli, var, nick, role):
     # if a traitor turns we want to show them as traitor in the end game readout
@@ -28,10 +30,12 @@ def on_get_final_role(evt, cli, var, nick, role):
     if role == "traitor" and evt.data["role"] == "wolf":
         evt.data["role"] = "traitor"
 
+
 @event_listener("update_stats", priority=1)
 def on_update_stats1(evt, var, player, mainrole, revealroles, allroles):
     if mainrole == var.DEFAULT_ROLE and var.HIDDEN_TRAITOR:
         evt.data["possible"].add("traitor")
+
 
 @event_listener("update_stats", priority=3)
 def on_update_stats3(evt, var, player, mainrole, revealrole, allroles):
@@ -64,6 +68,7 @@ def on_update_stats3(evt, var, player, mainrole, revealrole, allroles):
         # and a wolf kill, and a wolf + villager died, we know the villager was the wolf kill
         # and therefore cannot be traitor. However, we currently do not have the logic to deduce this
 
+
 @event_listener("chk_win", priority=1.1)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     did_something = False
@@ -75,7 +80,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
             mainroles[traitor] = "wolf"
             did_something = True
             if var.PHASE in var.GAME_PHASES:
-                var.FINAL_ROLES[traitor.nick] = "wolf" # FIXME
+                var.FINAL_ROLES[traitor.nick] = "wolf"  # FIXME
                 traitor.send(messages["traitor_turn"])
                 debuglog(traitor, "(traitor) TURNING")
     if did_something:
@@ -84,5 +89,6 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
             channels.Main.send(messages["traitor_turn_channel"])
         evt.prevent_default = True
         evt.stop_processing = True
+
 
 # vim: set sw=4 expandtab:

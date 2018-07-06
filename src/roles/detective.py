@@ -12,13 +12,14 @@ from src.events import Event
 
 INVESTIGATED = set()
 
+
 @cmd("id", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("detective",))
 def investigate(cli, nick, chan, rest):
     """Investigate a player to determine their exact role."""
     if nick in INVESTIGATED:
         pm(cli, nick, messages["already_investigated"])
         return
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
+    victim = get_victim(cli, nick, re.split(" +", rest)[0], False)
     if not victim:
         return
 
@@ -26,8 +27,8 @@ def investigate(cli, nick, chan, rest):
         pm(cli, nick, messages["no_investigate_self"])
         return
 
-    det = users._get(nick) # FIXME
-    target = users._get(victim) # FIXME
+    det = users._get(nick)  # FIXME
+    target = users._get(victim)  # FIXME
 
     evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
     evt.dispatch(var, "identify", det, target, frozenset({"info", "immediate"}))
@@ -45,7 +46,7 @@ def investigate(cli, nick, chan, rest):
     INVESTIGATED.add(nick)
     pm(cli, nick, (messages["investigate_success"]).format(victim, vrole))
     debuglog("{0} ({1}) ID: {2} ({3})".format(nick, get_role(nick), victim, vrole))
-    
+
     if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (should be changeable in settings)
         # The detective's identity is compromised!
         wcroles = var.WOLFCHAT_ROLES
@@ -58,19 +59,23 @@ def investigate(cli, nick, chan, rest):
         mass_privmsg(cli, list_players(wcroles), messages["detective_reveal"].format(nick))
         debuglog("{0} ({1}) PAPER DROP".format(nick, get_role(nick)))
 
+
 @event_listener("rename_player")
 def on_rename(evt, cli, var, prefix, nick):
     if prefix in INVESTIGATED:
         INVESTIGATED.remove(prefix)
         INVESTIGATED.add(nick)
 
+
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     INVESTIGATED.discard(user.nick)
 
+
 @event_listener("get_special")
 def on_get_special(evt, var):
     evt.data["special"].update(get_players(("detective",)))
+
 
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
@@ -78,6 +83,7 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
         INVESTIGATED.discard(actor.nick)
     elif target_role == "detective" and actor_role != "detective":
         INVESTIGATED.discard(target.nick)
+
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
@@ -95,12 +101,15 @@ def on_transition_night_end(evt, var):
             to_send = "detective_simple"
         dttv.send(messages[to_send].format(warning), "Players: " + ", ".join(p.nick for p in pl), sep="\n")
 
+
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, cli, var):
     INVESTIGATED.clear()
 
+
 @event_listener("reset")
 def on_reset(evt, var):
     INVESTIGATED.clear()
+
 
 # vim: set sw=4 expandtab:
